@@ -145,31 +145,67 @@ export const buildSpeakerAnalytics = (transcript) => {
     speakerList[0].isMostActive = true;
   }
 
-  // Calculate Interlocutor Interaction Frequency (consecutive turns in dialogue)
-  const interactionMap = new Map();
-  for (let i = 0; i < turnSequence.length - 1; i++) {
-    const a = turnSequence[i].speaker;
-    const b = turnSequence[i + 1].speaker;
-    if (a && b && a.toLowerCase() !== b.toLowerCase()) {
-      const pairKey = [a, b].sort().join(' ↔ ');
-      interactionMap.set(pairKey, (interactionMap.get(pairKey) || 0) + 1);
-    }
-  }
+  // Calculate Interlocutor Interaction Frequency & Dialogue Handoffs
+  let interactions = [];
 
-  const interactions = Array.from(interactionMap.entries())
-    .map(([pair, count]) => {
+  if (Array.isArray(meta.handoffs) && meta.handoffs.length > 0) {
+    const countsMap = new Map();
+    meta.handoffs.forEach((h) => {
+      const fromSpk = h.from || h.from_speaker || '';
+      const toSpk = h.to || h.to_speaker || '';
+      if (fromSpk && toSpk && fromSpk.toLowerCase() !== toSpk.toLowerCase()) {
+        const key = `${fromSpk}___${toSpk}`;
+        countsMap.set(key, (countsMap.get(key) || 0) + 1);
+      }
+    });
+
+    interactions = Array.from(countsMap.entries()).map(([key, count]) => {
+      const [fromSpk, toSpk] = key.split('___');
       let level = 'Low interaction';
-      if (count >= 6) level = 'High interaction';
-      else if (count >= 3) level = 'Medium interaction';
+      if (count >= 5) level = 'High interaction';
+      else if (count >= 2) level = 'Medium interaction';
 
       return {
-        pair,
+        from: fromSpk,
+        to: toSpk,
+        pair: `${fromSpk} → ${toSpk}`,
         count,
         level,
         description: `${count} sequential dialogue exchanges`
       };
-    })
-    .sort((a, b) => b.count - a.count);
+    });
+  }
+
+  if (interactions.length === 0) {
+    const interactionMap = new Map();
+    for (let i = 0; i < turnSequence.length - 1; i++) {
+      const a = turnSequence[i].speaker;
+      const b = turnSequence[i + 1].speaker;
+      if (a && b && a.toLowerCase() !== b.toLowerCase()) {
+        const pairKey = `${a}___${b}`;
+        interactionMap.set(pairKey, (interactionMap.get(pairKey) || 0) + 1);
+      }
+    }
+
+    interactions = Array.from(interactionMap.entries())
+      .map(([pairKey, count]) => {
+        const [fromSpk, toSpk] = pairKey.split('___');
+        let level = 'Low interaction';
+        if (count >= 6) level = 'High interaction';
+        else if (count >= 3) level = 'Medium interaction';
+
+        return {
+          from: fromSpk,
+          to: toSpk,
+          pair: `${fromSpk} → ${toSpk}`,
+          count,
+          level,
+          description: `${count} sequential dialogue exchanges`
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+  }
+
 
   const wordsBySpeakerChart = speakerList.map((s) => ({
     name: s.name,

@@ -56,9 +56,28 @@ export const getSpeakerCount = (transcript) => {
 };
 
 /**
+ * Canonical Word Count Tokenizer Helper — MetaMind AI
+ * Uses authoritative backend transcript.wordCount if available, or normalizes raw text tokens.
+ * @param {Object} transcript
+ * @returns {number}
+ */
+export const getTranscriptWordCount = (transcript) => {
+  if (!transcript) return 0;
+  if (typeof transcript.wordCount === 'number' && transcript.wordCount >= 0) {
+    return transcript.wordCount;
+  }
+  if (transcript.metadata && typeof transcript.metadata.wordCount === 'number' && transcript.metadata.wordCount >= 0) {
+    return transcript.metadata.wordCount;
+  }
+  const text = transcript.rawText || '';
+  if (!text.trim()) return 0;
+  return text.trim().split(/[\s\r\n\t]+/).filter(Boolean).length;
+};
+
+/**
  * Compute real aggregate library KPI metrics across an array of transcripts
  * @param {Array} transcripts
- * @returns {Object} { total, processed, processing, failed, totalSegments, totalEntities, distinctSpeakers }
+ * @returns {Object} { total, processed, processing, failed, totalWords, totalSegments, totalEntities, distinctSpeakers }
  */
 export const computeLibraryMetrics = (transcripts = []) => {
   if (!Array.isArray(transcripts) || transcripts.length === 0) {
@@ -67,6 +86,7 @@ export const computeLibraryMetrics = (transcripts = []) => {
       processed: 0,
       processing: 0,
       failed: 0,
+      totalWords: 0,
       totalSegments: 0,
       totalEntities: 0,
       distinctSpeakers: 0
@@ -77,6 +97,7 @@ export const computeLibraryMetrics = (transcripts = []) => {
   let processed = 0;
   let processing = 0;
   let failed = 0;
+  let totalWords = 0;
   let totalSegments = 0;
   let totalEntities = 0;
   const distinctSpeakerSet = new Set();
@@ -90,6 +111,8 @@ export const computeLibraryMetrics = (transcripts = []) => {
     } else if (status === 'failed') {
       failed += 1;
     }
+
+    totalWords += getTranscriptWordCount(t);
 
     // Only completed transcripts with valid metadata contribute to NLP metrics
     if (t.metadata && status === 'completed') {
@@ -108,7 +131,6 @@ export const computeLibraryMetrics = (transcripts = []) => {
         t.metadata.speakers.forEach((s) => {
           const name = s.speaker ? s.speaker.trim() : '';
           if (name) {
-            // Case-insensitive normalization so "CYPHER", "Cypher", and "cypher" represent 1 distinct speaker
             distinctSpeakerSet.add(name.toUpperCase());
           }
         });
@@ -121,8 +143,10 @@ export const computeLibraryMetrics = (transcripts = []) => {
     processed,
     processing,
     failed,
+    totalWords,
     totalSegments,
     totalEntities,
     distinctSpeakers: distinctSpeakerSet.size
   };
 };
+

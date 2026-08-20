@@ -9,7 +9,6 @@ import { DetailHeaderSkeleton, CardSkeleton } from '../components/SkeletonLoader
 import ErrorState from '../components/ErrorState';
 import EntityList from '../components/EntityList';
 import TopicList from '../components/TopicList';
-import SpeakerList from '../components/SpeakerList';
 import SpeakerIntelligence from '../components/SpeakerIntelligence';
 import TranscriptViewer from '../components/TranscriptViewer';
 import SceneTimeline from '../components/SceneTimeline';
@@ -288,7 +287,7 @@ const TranscriptDetail = () => {
       </div>
 
       {/* Tab Navigation Workspace */}
-      <div className="flex border-b border-[#E4E7EC] overflow-x-auto bg-white rounded-xl px-2 shadow-saas">
+      <div className="sticky top-16 z-30 flex border-b border-[#E4E7EC] overflow-x-auto bg-white rounded-xl px-2 shadow-saas no-scrollbar space-x-1 flex-nowrap">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -297,10 +296,10 @@ const TranscriptDetail = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 flex-shrink-0 cursor-pointer ${
+              className={`px-3.5 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 flex-shrink-0 cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? 'border-[#3157D5] text-[#3157D5]'
-                  : 'border-transparent text-[#475467] hover:text-[#101828]'
+                  ? 'border-[#3157D5] text-[#3157D5] bg-[#EEF3FF]/60 rounded-t-lg'
+                  : 'border-transparent text-[#475467] hover:text-[#101828] hover:bg-[#F9FAFB] rounded-t-lg'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -310,125 +309,160 @@ const TranscriptDetail = () => {
         })}
       </div>
 
+
       {/* Tab Content Panels */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* Row 1: Keyphrases & Named Entities Grouped */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Key Topics & Keyphrases */}
-            <div className="saas-card p-5 space-y-3 bg-white border border-[#E4E7EC] shadow-saas">
-              <div className="flex items-center justify-between border-b border-[#EAECF0] pb-3">
-                <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-[#3157D5]" />
-                  <h3 className="font-bold text-sm text-[#101828]">
-                    Topic & Keyphrase Intelligence
+          {/* Executive Overview & Metadata Card */}
+          <div className="saas-card p-6 space-y-5 bg-white border border-[#E4E7EC] shadow-saas">
+            <div className="flex items-center justify-between border-b border-[#EAECF0] pb-4">
+              <div className="flex items-center gap-2">
+                <LayoutList className="w-5 h-5 text-[#3157D5]" />
+                <div>
+                  <h3 className="font-bold text-base text-[#101828]">
+                    Transcript Metadata Summary
                   </h3>
+                  <p className="text-xs text-[#475467] mt-0.5">
+                    High-level document properties and multi-model analysis summary.
+                  </p>
                 </div>
-                <span className="text-xs text-[#475467] font-mono font-medium">
-                  {meta.keywords?.length || 0} terms
-                </span>
               </div>
-
-              <TopicList keywords={meta.keywords} />
+              <StatusBadge status={transcript.status} size="sm" />
             </div>
 
-            {/* Named Entities Summary (Grouped) */}
-            <div className="saas-card p-5 space-y-3 bg-white border border-[#E4E7EC] shadow-saas">
-              <div className="flex items-center justify-between border-b border-[#EAECF0] pb-3">
-                <div className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-[#3157D5]" />
-                  <h3 className="font-bold text-sm text-[#101828]">
-                    Named Entities
-                  </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-xl bg-[#F9FAFB] border border-[#E4E7EC] space-y-1">
+                <div className="text-xs font-semibold text-[#475467]">Source File</div>
+                <div className="text-sm font-bold text-[#101828] font-mono truncate">
+                  {transcript.fileName || 'Pasted Script'}
                 </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#F9FAFB] border border-[#E4E7EC] space-y-1">
+                <div className="text-xs font-semibold text-[#475467]">Document Length</div>
+                <div className="text-sm font-bold text-[#101828] font-mono">
+                  {wordCount.toLocaleString()} words ({lineCount.toLocaleString()} lines)
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#F9FAFB] border border-[#E4E7EC] space-y-1">
+                <div className="text-xs font-semibold text-[#475467]">Primary Sentiment</div>
+                <div className="pt-0.5">
+                  {meta.sentiment ? (
+                    <SentimentBadge sentiment={meta.sentiment} size="sm" />
+                  ) : (
+                    <span className="text-xs text-[#667085]">N/A</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#F9FAFB] border border-[#E4E7EC] space-y-1">
+                <div className="text-xs font-semibold text-[#475467]">Classified Domain</div>
+                <div className="pt-0.5">
+                  {meta.category ? (
+                    <CategoryBadge category={meta.category} size="sm" />
+                  ) : (
+                    <span className="text-xs text-[#667085]">Unclassified</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Tab Intelligence Navigation Grid */}
+            <div className="pt-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#475467] mb-3">
+                Analysis Deep-Dives Summary
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('topics')}
+                  className="p-3.5 rounded-xl border border-[#E4E7EC] hover:border-[#3157D5] hover:bg-[#EEF3FF]/40 text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <Tag className="w-4 h-4 text-[#3157D5]" />
+                    <span className="text-xs font-mono font-bold text-[#3157D5]">
+                      {meta.keywords?.length || 0}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-[#101828] group-hover:text-[#3157D5] transition-colors">
+                    Topics & Keywords
+                  </div>
+                  <div className="text-[11px] text-[#475467] mt-0.5">Explore key terms</div>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setActiveTab('entities')}
-                  className="text-xs text-[#3157D5] hover:text-[#2446B8] font-bold cursor-pointer"
+                  className="p-3.5 rounded-xl border border-[#E4E7EC] hover:border-[#3157D5] hover:bg-[#EEF3FF]/40 text-left transition-all group cursor-pointer"
                 >
-                  View All ({entityCount})
+                  <div className="flex items-center justify-between mb-1">
+                    <Layers className="w-4 h-4 text-[#15803D]" />
+                    <span className="text-xs font-mono font-bold text-[#15803D]">
+                      {entityCount}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-[#101828] group-hover:text-[#3157D5] transition-colors">
+                    Named Entities
+                  </div>
+                  <div className="text-[11px] text-[#475467] mt-0.5">Persons, orgs & places</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('sentiment')}
+                  className="p-3.5 rounded-xl border border-[#E4E7EC] hover:border-[#3157D5] hover:bg-[#EEF3FF]/40 text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <HeartHandshake className="w-4 h-4 text-[#D97706]" />
+                    <span className="text-xs font-mono font-bold text-[#D97706]">
+                      {meta.emotions?.length || 0}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-[#101828] group-hover:text-[#3157D5] transition-colors">
+                    Sentiment & Tone
+                  </div>
+                  <div className="text-[11px] text-[#475467] mt-0.5">Polarity & emotions</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('speakers')}
+                  className="p-3.5 rounded-xl border border-[#E4E7EC] hover:border-[#3157D5] hover:bg-[#EEF3FF]/40 text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <Users className="w-4 h-4 text-[#7C3AED]" />
+                    <span className="text-xs font-mono font-bold text-[#7C3AED]">
+                      {speakerCount}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-[#101828] group-hover:text-[#3157D5] transition-colors">
+                    Speakers
+                  </div>
+                  <div className="text-[11px] text-[#475467] mt-0.5">Diarization & turns</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('segments')}
+                  className="p-3.5 rounded-xl border border-[#E4E7EC] hover:border-[#3157D5] hover:bg-[#EEF3FF]/40 text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <Film className="w-4 h-4 text-[#0891B2]" />
+                    <span className="text-xs font-mono font-bold text-[#0891B2]">
+                      {segmentCount}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-[#101828] group-hover:text-[#3157D5] transition-colors">
+                    Scene Segments
+                  </div>
+                  <div className="text-[11px] text-[#475467] mt-0.5">Timeline & structure</div>
                 </button>
               </div>
-
-              <EntityList entities={meta.entities || []} grouped={true} />
             </div>
           </div>
 
-          {/* Row 2: Sentiment Valence & Emotion Distribution */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Sentiment Valence */}
-            <div className="saas-card p-5 space-y-3 bg-white border border-[#E4E7EC] shadow-saas">
-              <div className="flex items-center justify-between border-b border-[#EAECF0] pb-3">
-                <div className="flex items-center gap-2">
-                  <HeartHandshake className="w-4 h-4 text-[#3157D5]" />
-                  <h3 className="font-bold text-sm text-[#101828]">
-                    Sentiment Valence
-                  </h3>
-                </div>
-                <SentimentBadge sentiment={meta.sentiment} size="xs" />
-              </div>
-
-              <SentimentChart sentiment={meta.sentiment} />
-            </div>
-
-            {/* Emotion Spectrum */}
-            <div className="saas-card p-5 space-y-3 bg-white border border-[#E4E7EC] shadow-saas">
-              <div className="flex items-center justify-between border-b border-[#EAECF0] pb-3">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-[#3157D5]" />
-                  <h3 className="font-bold text-sm text-[#101828]">
-                    Emotional Tone Distribution
-                  </h3>
-                </div>
-              </div>
-
-              <EmotionChart emotions={meta.emotions || []} />
-            </div>
-          </div>
-
-          {/* Row 3: Speakers Identified */}
-          <div className="saas-card p-5 space-y-3 bg-white border border-[#E4E7EC] shadow-saas">
-            <div className="flex items-center justify-between border-b border-[#EAECF0] pb-3">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#3157D5]" />
-                <h3 className="font-bold text-sm text-[#101828]">
-                  Speakers Identified
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('speakers')}
-                className="text-xs text-[#3157D5] hover:text-[#2446B8] font-bold cursor-pointer"
-              >
-                Deep-Dive Analytics ({speakerCount})
-              </button>
-            </div>
-
-            <SpeakerList speakers={meta.speakers || []} status={transcript.status} />
-          </div>
-
-          {/* Row 4: Segments & Scene Timeline */}
-          <div className="saas-card p-5 space-y-3 bg-white border border-[#E4E7EC] shadow-saas">
-            <div className="flex items-center justify-between border-b border-[#EAECF0] pb-3">
-              <div className="flex items-center gap-2">
-                <Film className="w-4 h-4 text-[#3157D5]" />
-                <h3 className="font-bold text-sm text-[#101828]">
-                  Segments & Scene Timeline
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('segments')}
-                className="text-xs text-[#3157D5] hover:text-[#2446B8] font-bold cursor-pointer"
-              >
-                View All Segments ({segmentCount})
-              </button>
-            </div>
-
-            <SceneTimeline segments={meta.segments || []} />
-          </div>
-
-          {/* Row 5: Domain Classification */}
+          {/* Domain Classification */}
           <div className="saas-card p-5 space-y-3 bg-white border border-[#E4E7EC] shadow-saas">
             <div className="flex items-center justify-between border-b border-[#EAECF0] pb-3">
               <div className="flex items-center gap-2">

@@ -1,2 +1,3 @@
-import TopBar from './TopBar';
-export default TopBar;
+import TopNavbar from './TopNavbar';
+export default TopNavbar;
+

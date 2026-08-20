@@ -19,12 +19,6 @@ const navItems = [
     badge: null
   },
   {
-    to: '/upload',
-    label: 'Upload Transcript',
-    icon: UploadCloud,
-    badge: null
-  },
-  {
     to: '/transcripts',
     label: 'Transcripts',
     icon: FileText,
@@ -43,6 +37,7 @@ const navItems = [
     badge: null
   }
 ];
+
 
 const Sidebar = ({ isOpen, onClose }) => {
   return (

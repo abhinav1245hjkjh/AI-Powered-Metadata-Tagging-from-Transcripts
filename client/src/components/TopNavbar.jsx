@@ -47,17 +47,17 @@ const TopNavbar = () => {
 
   const navItems = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { label: 'Upload', path: '/upload', icon: Upload },
     { label: 'Transcripts', path: '/transcripts', icon: FileText },
     { label: 'Analytics', path: '/analytics', icon: BarChart3 }
   ];
+
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-[#E4E7EC] h-16 shadow-[0_1px_2px_0_rgba(16,24,40,0.03)]">
       <div className="max-w-[1400px] h-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         
-        {/* Brand & Left Navigation */}
-        <div className="flex items-center gap-8">
+        {/* Brand & Left Navigation Group */}
+        <div className="flex items-center gap-6">
           {/* Logo & Product Name */}
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-lg bg-[#3157D5] flex items-center justify-center text-white shadow-saas flex-shrink-0 transition-transform group-hover:scale-105">
@@ -72,6 +72,9 @@ const TopNavbar = () => {
               </span>
             </div>
           </Link>
+
+          {/* Vertical Divider */}
+          <div className="hidden md:block h-5 w-px bg-[#E4E7EC]" />
 
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-1">
@@ -98,7 +101,7 @@ const TopNavbar = () => {
           </nav>
         </div>
 
-        {/* Right Actions & User Profile */}
+        {/* Far Right Action Items & User Profile */}
         <div className="flex items-center gap-3">
           {/* Quick Primary Upload CTA (Desktop) */}
           <Link
@@ -108,6 +111,7 @@ const TopNavbar = () => {
             <Plus className="w-4 h-4" />
             <span>Upload Transcript</span>
           </Link>
+
 
           {/* User Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>

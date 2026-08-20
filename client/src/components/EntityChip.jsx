@@ -61,6 +61,36 @@ const labelStyles = {
     text: 'text-[#C11574]',
     badge: 'bg-[#FCCEEE] text-[#C11574]'
   },
+  PEOPLE: {
+    bg: 'bg-[#EFF6FF]',
+    border: 'border-[#93C5FD]',
+    text: 'text-[#1E3A8A]',
+    badge: 'bg-[#DBEAFE] text-[#1E3A8A]'
+  },
+  ORGANIZATIONS: {
+    bg: 'bg-[#F5F3FF]',
+    border: 'border-[#DDD6FE]',
+    text: 'text-[#4C1D95]',
+    badge: 'bg-[#EDE9FE] text-[#4C1D95]'
+  },
+  LOCATIONS: {
+    bg: 'bg-[#F0FDF4]',
+    border: 'border-[#BBF7D0]',
+    text: 'text-[#166534]',
+    badge: 'bg-[#DCFCE7] text-[#166534]'
+  },
+  DATES_TIMES: {
+    bg: 'bg-[#FFF6ED]',
+    border: 'border-[#FEE4E2]',
+    text: 'text-[#B54708]',
+    badge: 'bg-[#FEE4E2] text-[#B54708]'
+  },
+  PRODUCTS_EVENTS: {
+    bg: 'bg-[#FDF2FA]',
+    border: 'border-[#FCCEEE]',
+    text: 'text-[#C11574]',
+    badge: 'bg-[#FCCEEE] text-[#C11574]'
+  },
   DEFAULT: {
     bg: 'bg-[#F2F4F7]',
     border: 'border-[#EAECF0]',
@@ -71,10 +101,12 @@ const labelStyles = {
 
 const normalizeLabel = (label) => {
   const upper = (label || 'OTHER').toUpperCase();
-  if (upper === 'ORG') return 'ORGANIZATION';
-  if (upper === 'GPE' || upper === 'LOC') return 'LOCATION';
+  if (upper === 'ORG' || upper === 'ORGANIZATIONS') return 'ORGANIZATION';
+  if (upper === 'GPE' || upper === 'LOC' || upper === 'LOCATIONS') return 'LOCATION';
+  if (upper === 'PEOPLE') return 'PERSON';
   return upper;
 };
+
 
 export const EntityChip = ({ text, label, count }) => {
   const cleanLabel = (label || 'OTHER').toUpperCase();

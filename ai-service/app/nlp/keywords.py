@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 _kw_model = None
 _kw_lock = threading.Lock()
 
-# Comprehensive conversational stop words and fillers for transcript domain
+# Comprehensive conversational stop words, verbal fillers, and fragment indicators
 CONVERSATIONAL_STOPWORDS = {
     "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", "as", "at",
     "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can", "can't", "cannot",
@@ -31,8 +31,17 @@ CONVERSATIONAL_STOPWORDS = {
     "really", "actually", "just", "much", "many", "good", "great", "way", "need", "want", "take", "make", "made",
     "give", "given", "feel", "feels", "feeling", "look", "looks", "looking", "man", "men", "guy", "guys", "lot",
     "day", "night", "talk", "talking", "ask", "asked", "asking", "told", "heard", "hear", "listen", "listening",
-    "int", "ext", "scene", "comms", "over", "behind", "across"
+    "int", "ext", "scene", "comms", "over", "behind", "across", "faintest", "don", "didn", "doesn", "hasn", "haven",
+    "hadn", "wasn", "weren", "isn", "aren", "wouldn", "couldn", "shouldn"
 }
+
+# Fragments that signal conversational noise when appearing at start or end of phrase
+CONVERSATIONAL_FRAGMENT_PATTERNS = [
+    r"^\b(you|i|we|they|he|she|it|that|this|there|what|how|why)\s+(don|think|know|mean|said|tell|have|want|got|feel|would|could|should)\b",
+    r"\b(you\s+know|i\s+think|well\s+you|have\s+the\s+faintest|kind\s+of|sort\s+of|don\s+t|doesn\s+t|won\s+t|i\s+mean|let\s+me)\b",
+    r"^\b(well|like|just|maybe|so|yeah|yes|no|okay|sure|tell|look|see)\b",
+    r"\b(and\s+so|in\s+order|as\s+well|a\s+lot|something\s+like)\b"
+]
 
 
 def get_keybert_model():
@@ -55,25 +64,52 @@ def get_keybert_model():
     return _kw_model
 
 
-def is_valid_phrase(phrase: str) -> bool:
+def validate_keyphrase(phrase: str) -> bool:
     """
-    Filter out phrases that consist entirely of stop words, single characters, or numbers.
+    Strict validation function for keyphrase quality.
+    Evaluates:
+    - Min/max token length (1–4 words, 3–60 chars)
+    - Rejection of conversational fillers & fragments ("You Don", "Have The Faintest", "I Think", "Well You Know")
+    - Stopword ratio check
+    - Noun/concept substance check
     """
+    if not phrase or not isinstance(phrase, str):
+        return False
+
     cleaned = phrase.strip().lower()
-    if len(cleaned) < 3:
+    cleaned = re.sub(r'[\r\n\t_]+', ' ', cleaned)
+    cleaned = re.sub(r'[^\w\s-]', '', cleaned).strip()
+
+    if len(cleaned) < 3 or len(cleaned) > 60:
         return False
 
-    tokens = [t for t in re.findall(r'[a-zA-Z]+', cleaned) if len(t) > 1]
-    if not tokens:
+    tokens = [t for t in cleaned.split() if t]
+    if not tokens or len(tokens) > 5:
         return False
 
-    # Check that at least one token is a meaningful, non-stopword word
-    substantive_tokens = [t for t in tokens if t not in CONVERSATIONAL_STOPWORDS and len(t) > 2]
-    if not substantive_tokens:
+    # Check for conversational fragment patterns
+    for pattern in CONVERSATIONAL_FRAGMENT_PATTERNS:
+        if re.search(pattern, cleaned, re.IGNORECASE):
+            return False
+
+    # Count stop words vs substantive conceptual words
+    substantive_tokens = [t for t in tokens if t not in CONVERSATIONAL_STOPWORDS and len(t) >= 2]
+
+    # For single-word keywords, require at least 4 chars and non-stopword
+    if len(tokens) == 1:
+        if tokens[0] in CONVERSATIONAL_STOPWORDS or len(tokens[0]) < 3:
+            return False
+        return True
+
+    # For multi-word phrases, at least 50% of tokens must be substantive conceptual words
+    if len(substantive_tokens) < 1 or (len(substantive_tokens) / len(tokens)) < 0.4:
         return False
 
-    # Filter out single conversational filler words
-    if len(tokens) == 1 and tokens[0] in CONVERSATIONAL_STOPWORDS:
+    # Reject if phrase starts or ends with a pure stopword preposition/conjunction/auxiliary verb
+    leading_trailing_stopwords = {"and", "or", "but", "so", "for", "with", "the", "a", "an", "in", "on", "at", "to", "from", "by", "of", "you", "i", "we", "don", "think"}
+    if tokens[0] in leading_trailing_stopwords and len(tokens) <= 2:
+        return False
+    if tokens[-1] in leading_trailing_stopwords and len(tokens) <= 2:
         return False
 
     return True
@@ -81,33 +117,47 @@ def is_valid_phrase(phrase: str) -> bool:
 
 def format_phrase(phrase: str) -> str:
     """
-    Clean and title-case keyphrases for clean presentation.
+    Normalizes capitalization and formats keyphrases cleanly.
+    Preserves uppercase for acronyms (AI, ML, NLP, NASA, MIT, API, USA, etc.)
+    and title-cases standard words.
     """
-    # Clean whitespace and unwanted symbols
     cleaned = re.sub(r'[\r\n\t_]+', ' ', phrase).strip()
     words = cleaned.split()
-    return " ".join(words)
+
+    KNOWN_ACRONYMS = {"ai", "ml", "nlp", "ner", "api", "mit", "nasa", "fbi", "cia", "cpu", "gpu", "ui", "ux", "usa", "uk", "db", "json", "xml", "csv", "sql", "http", "https", "url", "id", "kpi"}
+
+    formatted_words = []
+    for w in words:
+        w_lower = w.lower().strip(".,!?:;\"'()[]{}")
+        if w_lower in KNOWN_ACRONYMS:
+            formatted_words.append(w_lower.upper())
+        elif w.isupper() and len(w) <= 4:
+            formatted_words.append(w)
+        else:
+            formatted_words.append(w.capitalize())
+
+    return " ".join(formatted_words)
 
 
 def extract_keywords(text: str, top_n: int = 10) -> List[str]:
     """
     Extract high-relevance keyphrases and multi-word conceptual topics using KeyBERT with MMR diversity.
-    Ensures multi-word n-gram support (1–3 words) and prunes conversational filler words.
+    Prunes conversational fragments, filler words, and enforces strict keyphrase validation.
     """
     if not text or not text.strip():
         return []
 
-    # Clean text
+    # Clean text for candidate generation
     cleaned_text = re.sub(r'[\r\n\t]+', ' ', text).strip()
+
     if len(cleaned_text.split()) < 4:
-        words = [w.strip(".,!?:;\"'()[]{}") for w in cleaned_text.split() if is_valid_phrase(w)]
+        words = [w.strip(".,!?:;\"'()[]{}") for w in cleaned_text.split() if validate_keyphrase(w)]
         return list(dict.fromkeys([format_phrase(w) for w in words]))[:top_n]
 
     model = get_keybert_model()
 
     if model:
         try:
-            # Run inference without gradient tracking to conserve RAM (< 512MB)
             try:
                 import torch
                 ctx = torch.inference_mode() if hasattr(torch, "inference_mode") else torch.no_grad()
@@ -118,8 +168,8 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
                 "keyphrase_ngram_range": (1, 3),
                 "stop_words": "english",
                 "use_mmr": True,
-                "diversity": 0.55,
-                "top_n": top_n * 2
+                "diversity": 0.6,
+                "top_n": top_n * 3
             }
 
             if ctx:
@@ -128,13 +178,13 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
             else:
                 extracted = model.extract_keywords(cleaned_text, **params)
 
-            # Filter, clean, and deduplicate
+            # Filter, clean, validate, and deduplicate
             unique_phrases = []
             seen = set()
 
             for item in extracted:
                 phrase = item[0].strip()
-                if is_valid_phrase(phrase):
+                if validate_keyphrase(phrase):
                     formatted = format_phrase(phrase)
                     key = formatted.lower()
                     if key not in seen:
@@ -159,7 +209,7 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
             ngram_range=(1, 3),
             min_df=1,
             max_df=0.9,
-            max_features=top_n * 4
+            max_features=top_n * 5
         )
 
         tfidf_matrix = vectorizer.fit_transform([cleaned_text])
@@ -172,10 +222,9 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
 
         for idx in sorted_indices:
             kw = feature_names[idx].strip()
-            if is_valid_phrase(kw):
+            if validate_keyphrase(kw):
                 formatted = format_phrase(kw)
                 key = formatted.lower()
-                # Check for redundancy with already selected phrases
                 if key not in seen and not any(key in p.lower() or p.lower() in key for p in fallback_keywords):
                     seen.add(key)
                     fallback_keywords.append(formatted)
@@ -188,12 +237,12 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
     except Exception as e:
         logger.error(f"TF-IDF fallback keyword extraction failed: {e}")
 
-    # Pure heuristic multi-word regex extractor
+    # Pure heuristic multi-word regex extractor fallback
     candidates = re.findall(r'\b[A-Za-z]{3,}(?:\s+[A-Za-z]{3,}){1,2}\b', cleaned_text)
     meaningful = []
     seen = set()
     for cand in candidates:
-        if is_valid_phrase(cand):
+        if validate_keyphrase(cand):
             formatted = format_phrase(cand)
             key = formatted.lower()
             if key not in seen:
@@ -203,3 +252,4 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
             break
 
     return meaningful or ["General Discussion", "Transcript Analysis"]
+
