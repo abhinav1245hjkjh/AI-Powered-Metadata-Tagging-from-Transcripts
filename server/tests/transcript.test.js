@@ -125,7 +125,10 @@ ARCHITECT: Excellent. All tests pass with zero mock data.`;
           status: 'completed',
           metadata: {
             category: { label: 'entertainment', confidence: 0.95 },
-            sentiment: { polarity: 'neutral', score: 0.0 }
+            sentiment: { polarity: 'neutral', score: 0.0 },
+            segments: [{ index: 0, heading: 'Intro', text: 'TRINITY: The mainframe is ready.' }],
+            entities: [{ text: 'Mainframe', label: 'PRODUCT' }],
+            speakers: [{ speaker: 'TRINITY', lineCount: 1 }]
           },
           createdBy: userId
         },
@@ -135,14 +138,17 @@ ARCHITECT: Excellent. All tests pass with zero mock data.`;
           status: 'completed',
           metadata: {
             category: { label: 'interview', confidence: 0.88 },
-            sentiment: { polarity: 'positive', score: 0.6 }
+            sentiment: { polarity: 'positive', score: 0.6 },
+            segments: [{ index: 0, heading: 'Dialogue', text: 'INTERVIEWER: Welcome to the team.' }],
+            entities: [{ text: 'Alex', label: 'PERSON' }],
+            speakers: [{ speaker: 'INTERVIEWER', lineCount: 1 }]
           },
           createdBy: userId
         }
       ]);
     });
 
-    it('should list all transcripts for the authenticated user', async () => {
+    it('should list all transcripts for the authenticated user with rawText and full metadata included', async () => {
       const res = await request(app)
         .get('/api/transcripts')
         .set('Authorization', `Bearer ${userToken}`);
@@ -150,6 +156,12 @@ ARCHITECT: Excellent. All tests pass with zero mock data.`;
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.count).toBe(2);
+      expect(res.body.transcripts[0].rawText).toBeDefined();
+      expect(typeof res.body.transcripts[0].rawText).toBe('string');
+      expect(res.body.transcripts[0].metadata).toBeDefined();
+      expect(Array.isArray(res.body.transcripts[0].metadata.segments)).toBe(true);
+      expect(Array.isArray(res.body.transcripts[0].metadata.entities)).toBe(true);
+      expect(Array.isArray(res.body.transcripts[0].metadata.speakers)).toBe(true);
     });
 
     it('should filter transcripts by search query', async () => {

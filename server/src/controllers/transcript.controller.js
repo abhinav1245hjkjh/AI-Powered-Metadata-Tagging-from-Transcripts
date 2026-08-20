@@ -141,7 +141,7 @@ const getTranscripts = async (req, res) => {
 
     const transcripts = await Transcript.find(filter)
       .sort({ createdAt: -1 })
-      .select('title fileName status metadata.category metadata.sentiment createdAt error');
+      .select('title rawText fileName status metadata createdAt error');
 
     return res.status(200).json({
       success: true,

@@ -4,34 +4,36 @@ import { Smile, Frown, Meh } from 'lucide-react';
 const SentimentChart = ({ sentiment }) => {
   if (!sentiment) {
     return (
-      <div className="text-sm text-slate-400 italic py-4 text-center">
+      <div className="text-xs text-[#475467] italic py-4 text-center bg-[#F9FAFB] rounded-xl border border-[#E4E7EC]">
         No sentiment data available.
       </div>
     );
   }
 
   const { polarity = 'neutral', score = 0 } = sentiment;
+  const numScore = typeof score === 'number' ? score : parseFloat(score) || 0.0;
+  
   // Map compound score (-1.0 to 1.0) to percentage (0% to 100%)
-  const percentage = Math.max(0, Math.min(100, ((score + 1) / 2) * 100));
+  const percentage = Math.max(0, Math.min(100, ((numScore + 1) / 2) * 100));
 
   const polarityConfig = {
     positive: {
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10 border-emerald-500/30',
+      color: 'text-[#067647]',
+      bg: 'bg-[#ECFDF3] border-[#D1FADF]',
       icon: Smile,
-      label: 'Positive'
+      label: 'Positive Tone'
     },
     negative: {
-      color: 'text-rose-400',
-      bg: 'bg-rose-500/10 border-rose-500/30',
+      color: 'text-[#B42318]',
+      bg: 'bg-[#FEF3F2] border-[#FECDCA]',
       icon: Frown,
-      label: 'Negative'
+      label: 'Negative Tone'
     },
     neutral: {
-      color: 'text-amber-400',
-      bg: 'bg-amber-500/10 border-amber-500/30',
+      color: 'text-[#344054]',
+      bg: 'bg-[#F2F4F7] border-[#EAECF0]',
       icon: Meh,
-      label: 'Neutral'
+      label: 'Neutral Tone'
     }
   };
 
@@ -39,41 +41,43 @@ const SentimentChart = ({ sentiment }) => {
   const IconComponent = current.icon;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="space-y-3.5">
+      {/* Metric Header */}
+      <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#F9FAFB] border border-[#E4E7EC]">
+        <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg border ${current.bg}`}>
-            <IconComponent className={`w-5 h-5 ${current.color}`} />
+            <IconComponent className={`w-4 h-4 ${current.color}`} />
           </div>
           <div>
-            <div className="text-xs text-slate-400 font-medium">Overall Polarity</div>
-            <div className={`text-base font-bold capitalize ${current.color}`}>
+            <div className="text-xs text-[#475467] font-semibold">Polarity Classification</div>
+            <div className={`text-sm font-bold capitalize ${current.color}`}>
               {current.label}
             </div>
           </div>
         </div>
 
         <div className="text-right">
-          <div className="text-xs text-slate-400 font-medium">VADER Compound</div>
-          <div className="text-lg font-mono font-bold text-slate-200">
-            {score > 0 ? `+${score.toFixed(3)}` : score.toFixed(3)}
+          <div className="text-xs text-[#475467] font-semibold">Valence Compound</div>
+          <div className="text-base font-mono font-bold text-[#101828] tabular-nums">
+            {numScore > 0 ? `+${numScore.toFixed(3)}` : numScore.toFixed(3)}
           </div>
         </div>
       </div>
 
       {/* Progress Scale Bar */}
-      <div className="space-y-1.5 pt-2">
-        <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-          <span>-1.0 (Negative)</span>
-          <span>0.0 (Neutral)</span>
-          <span>+1.0 (Positive)</span>
+      <div className="space-y-1.5 pt-1">
+        <div className="flex justify-between text-xs text-[#475467] font-mono font-semibold">
+          <span className="text-[#B42318]">-1.00 (Negative)</span>
+          <span className="text-[#475467]">0.00 (Neutral)</span>
+          <span className="text-[#067647]">+1.00 (Positive)</span>
         </div>
-        <div className="relative h-2.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+        
+        <div className="relative h-2.5 w-full bg-[#F2F4F7] rounded-full overflow-hidden border border-[#E4E7EC]">
           <div
-            className="absolute top-0 bottom-0 left-0 transition-all duration-700 rounded-full"
+            className="absolute top-0 bottom-0 left-0 transition-all duration-500 rounded-full"
             style={{
               width: `${percentage}%`,
-              background: 'linear-gradient(90deg, #f43f5e 0%, #fbbf24 50%, #10b981 100%)'
+              background: 'linear-gradient(90deg, #B42318 0%, #475467 50%, #067647 100%)'
             }}
           />
         </div>

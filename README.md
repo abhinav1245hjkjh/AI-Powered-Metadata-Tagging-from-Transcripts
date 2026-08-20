@@ -1,4 +1,4 @@
-# MetaMind AI — AI-Powered Transcript Metadata & Content Intelligence Platform
+# MetaScript AI — Metadata Intelligence Platform
 
 > **Cognizant Hackathon Submission**  
 > *Tag → Understand → Search → Discover*
@@ -15,7 +15,7 @@
 
 Unstructured audio/video transcripts, movie scripts, interviews, podcasts, and corporate meetings represent massive volumes of unindexed text. Organizations struggle to rapidly discover key moments, extract named entities, assess emotional valence, track speaker contributions, and classify domains.
 
-**MetaMind AI** bridges this gap by automatically converting raw transcript text or files into structured, searchable, visualizable, and exportable intelligence via a multi-model NLP pipeline.
+**MetaScript AI** converts unstructured transcript content into structured, searchable, and actionable metadata using NLP and Generative AI via a deterministic multi-model pipeline.
 
 ---
 
@@ -23,11 +23,11 @@ Unstructured audio/video transcripts, movie scripts, interviews, podcasts, and c
 
 1. **Topics & Keywords**: Extract keyphrases using **KeyBERT** and TF-IDF with stopword removal and deduplication.
 2. **Named Entity Recognition (NER)**: Extract and categorize entities (`PERSON`, `ORG`, `GPE`, `DATE`, `PRODUCT`, `LOC`, `EVENT`) with **spaCy** `en_core_web_sm`.
-3. **Sentiment Valence**: Compute exact polarity (`positive`, `negative`, `neutral`) and compound metrics using **NLTK VADER**.
-4. **Emotion Distribution**: Analyze multidimensional emotional probabilities (`joy`, `sadness`, `anger`, `fear`, `surprise`, `disgust`, `neutral`) using **DistilRoBERTa** (`j-hartmann/emotion-english-distilroberta-base`).
+3. **Sentiment Valence**: Compute exact polarity (`positive`, `negative`, `neutral`) and compound metrics using **NLTK VADER** with utterance-level scoring and lexical fallback.
+4. **Emotion Distribution**: Analyze 12 multidimensional emotional probabilities (`joy`, `optimism`, `enthusiasm`, `trust`, `curiosity`, `surprise`, `sadness`, `anger`, `fear`, `disgust`, `frustration`, `neutral`) using **DistilRoBERTa** and contextual nuance extractors.
 5. **Speaker Identification & Turn Counts**: Deterministic regex rule-engine recognizing script headers, colons, and dialogue turns with line counts.
 6. **Time/Scene-Based Segmentation**: Scene boundaries (`INT.`, `EXT.`, `INT./EXT.`), timestamp markers (`[00:01:23]`), or dialogue-block segmentations without inventing fake timestamps.
-7. **Zero-Shot Domain Classification**: Categorize content into `entertainment`, `interview`, `meeting`, `education`, or `news` with confidence metrics using **BART-Large-MNLI**.
+7. **Zero-Shot Domain Classification**: Categorize content into 10 domains (`entertainment`, `interview`, `meeting`, `education`, `news`, `technology`, `finance`, `healthcare`, `legal`, `podcast`) with confidence metrics using **BART-Large-MNLI**.
 8. **Export Engine**: Export full structured metadata in JSON and flattened CSV formats with descriptive filenames.
 
 ---
@@ -83,6 +83,7 @@ metadata-tagging-hackathon/
 │   ├── src/
 │   │   ├── api/axios.js
 │   │   ├── components/
+│   │   │   ├── Badge.jsx
 │   │   │   ├── CategoryBadge.jsx
 │   │   │   ├── EmotionChart.jsx
 │   │   │   ├── EmptyState.jsx
@@ -94,6 +95,7 @@ metadata-tagging-hackathon/
 │   │   │   ├── SceneTimeline.jsx
 │   │   │   ├── SentimentChart.jsx
 │   │   │   ├── Sidebar.jsx
+│   │   │   ├── Skeleton.jsx
 │   │   │   ├── SpeakerTable.jsx
 │   │   │   └── UploadZone.jsx
 │   │   ├── context/AuthContext.jsx
@@ -219,15 +221,21 @@ npm run dev
 
 ---
 
-## 8. Docker Compose Deployment
+## 8. Deployment Options
 
-To build and run all 3 services and local MongoDB with a single command:
-```bash
-docker-compose up --build
-```
-- Client: `http://localhost:5173`
-- Backend API: `http://localhost:5000`
-- AI Service & Swagger Docs: `http://localhost:8000/docs`
+For a full step-by-step production deployment guide across all major cloud providers, see [**DEPLOYMENT.md**](DEPLOYMENT.md).
+
+### Quick Options:
+- **1-Click Cloud Deployment (Render Blueprint)**: Push your repo to GitHub and import as a Blueprint on [Render](https://dashboard.render.com) using [`render.yaml`](render.yaml).
+- **Vercel + Render + MongoDB Atlas**: Deploy the React client on Vercel, Express backend on Render, and Python AI service on Render Docker.
+- **Docker Compose (Local or VPS)**:
+  ```bash
+  docker-compose up --build
+  ```
+  - Client: `http://localhost:5173`
+  - Backend API: `http://localhost:5000`
+  - AI Service & Swagger Docs: `http://localhost:8000/docs`
+
 
 ---
 

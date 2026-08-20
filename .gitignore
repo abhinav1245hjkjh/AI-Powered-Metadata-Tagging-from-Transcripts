@@ -50,3 +50,4 @@ uploads/
 .cache/
 hf_cache/
 nltk_data/
+powershell.cmd

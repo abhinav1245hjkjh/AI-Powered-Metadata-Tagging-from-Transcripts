@@ -1,3 +1,7 @@
+
+
+import os
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, status
@@ -21,15 +25,12 @@ logger = logging.getLogger("MetaMindAI")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing MetaMind AI NLP pipeline & preloading models...")
-    # Trigger model warm-up in background
+    logger.info("MetaMind AI NLP Microservice initialized (lazy-loading heavy models for low-memory efficiency)...")
     try:
-        get_spacy_model()
         get_vader_analyzer()
-        get_keybert_model()
     except Exception as e:
-        logger.warning(f"Background model initialization warning: {e}")
-    logger.info("MetaMind AI NLP Microservice ready.")
+        logger.warning(f"VADER startup notice: {e}")
+    logger.info("MetaMind AI NLP Microservice online and listening for requests.")
     yield
     logger.info("Shutting down MetaMind AI NLP Microservice.")
 
@@ -137,3 +138,12 @@ async def analyze_transcript(payload: AnalyzeRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Metadata processing failed: {str(e)}"
         )
+
+
+if __name__ == "__main__":
+    import uvicorn
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", "8000"))
+    logger.info(f"Starting MetaMind AI NLP Service on {host}:{port}")
+    uvicorn.run("app.main:app", host=host, port=port, reload=False)
+

@@ -4,49 +4,85 @@ import {
   LayoutDashboard,
   UploadCloud,
   FileText,
-  Terminal,
-  Database,
+  BarChart3,
+  Settings,
+  Sparkles,
   Cpu,
-  Layers,
-  CheckCircle2
+  ShieldCheck
 } from 'lucide-react';
 
-const Sidebar = ({ isOpen, onClose }) => {
-  const navItems = [
-    {
-      to: '/',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      description: 'Overview & Recent Transcripts'
-    },
-    {
-      to: '/upload',
-      label: 'Upload Transcript',
-      icon: UploadCloud,
-      description: 'Upload .txt/.json or paste text'
-    }
-  ];
+const navItems = [
+  {
+    to: '/',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    badge: null
+  },
+  {
+    to: '/upload',
+    label: 'Upload Transcript',
+    icon: UploadCloud,
+    badge: null
+  },
+  {
+    to: '/transcripts',
+    label: 'Transcripts',
+    icon: FileText,
+    badge: null
+  },
+  {
+    to: '/analytics',
+    label: 'Analytics',
+    icon: BarChart3,
+    badge: null
+  },
+  {
+    to: '/settings',
+    label: 'Settings',
+    icon: Settings,
+    badge: null
+  }
+];
 
+const Sidebar = ({ isOpen, onClose }) => {
   return (
     <>
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden transition-opacity"
         />
       )}
 
-      {/* Sidebar Content */}
+      {/* Fixed Sidebar Container */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#0B0F19] md:bg-transparent border-r border-slate-800/80 p-4 flex flex-col justify-between transform transition-transform duration-200 ease-in-out md:translate-x-0 ${
+        className={`fixed md:static inset-y-0 left-0 z-50 w-60 bg-white border-r border-[#E4E7EC] p-4 flex flex-col justify-between transform transition-transform duration-200 ease-in-out md:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="space-y-6">
+          {/* Brand Header */}
+          <div className="px-2 pt-1">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#3157D5] flex items-center justify-center text-white shadow-saas flex-shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-sm text-[#172033] tracking-tight leading-none">
+                  MetaMind AI
+                </div>
+                <div className="text-[10px] text-[#667085] font-medium tracking-tight mt-1">
+                  Metadata Intelligence
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation Section */}
           <div className="space-y-1">
-            <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-              Main Menu
+            <div className="px-2.5 text-[10px] font-bold uppercase tracking-wider text-[#98A2B3] mb-1.5">
+              Workspace
             </div>
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -54,57 +90,38 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <NavLink
                   key={item.to}
                   to={item.to}
+                  end={item.to === '/'}
                   onClick={() => onClose && onClose()}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    `flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
                       isActive
-                        ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 font-semibold'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        ? 'bg-[#EEF3FF] text-[#3157D5]'
+                        : 'text-[#667085] hover:text-[#172033] hover:bg-[#F9FAFB]'
                     }`
                   }
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-[#F2F4F7] text-[#667085] border border-[#EAECF0]">
+                      {item.badge}
+                    </span>
+                  )}
                 </NavLink>
               );
             })}
           </div>
-
-          {/* AI Pipeline Architecture Info Card */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800/80 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-              <Cpu className="w-4 h-4 text-indigo-400" />
-              <span>NLP Architecture</span>
-            </div>
-            <div className="space-y-2 text-[11px] text-slate-400">
-              <div className="flex items-center justify-between">
-                <span>Keywords:</span>
-                <span className="font-mono text-indigo-300">KeyBERT</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Entities:</span>
-                <span className="font-mono text-indigo-300">spaCy en_core</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Sentiment:</span>
-                <span className="font-mono text-indigo-300">NLTK VADER</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Emotion:</span>
-                <span className="font-mono text-indigo-300">DistilRoBERTa</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Classification:</span>
-                <span className="font-mono text-indigo-300">BART-Large</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Footer info */}
-        <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 text-[11px] text-slate-400 text-center">
-          <span className="text-slate-300 font-semibold">Cognizant Hackathon</span>
-          <div className="text-[10px] text-slate-500">Kaggle Movie Scripts Corpus</div>
+        <div className="p-3 rounded-lg bg-[#F9FAFB] border border-[#E4E7EC] text-xs text-[#667085] space-y-0.5">
+          <div className="flex items-center gap-1.5 font-bold text-[#172033]">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#3157D5]" />
+            <span>MetaMind AI</span>
+          </div>
+          <div className="text-[11px] text-[#667085]">Enterprise Intelligence</div>
         </div>
       </aside>
     </>

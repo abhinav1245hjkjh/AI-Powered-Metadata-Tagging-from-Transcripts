@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, FileText, Code2, Sparkles, Check, AlertCircle } from 'lucide-react';
+import { UploadCloud, FileText, Code2, Sparkles, Check, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const SAMPLE_SCRIPTS = {
   matrix: {
-    title: "The Matrix — Cyberpunk Script Excerpt",
-    fileName: "matrix_excerpt.txt",
+    title: "The Matrix — Mainframe Extraction Scene",
+    fileName: "matrix_script.txt",
     text: `INT. HEART O' THE CITY HOTEL - NIGHT
 
 A cold, dark room. Neon signs pulse outside the cracked window.
@@ -46,7 +46,7 @@ AGENT SMITH:
 No, Lieutenant. Your men entered a combat zone they do not comprehend. Order your units to seal the perimeter. The anomaly must not escape.`
   },
   goodwill: {
-    title: "Good Will Hunting — Psychology Scene",
+    title: "Good Will Hunting — Psychology & Literature Scene",
     fileName: "good_will_hunting.txt",
     text: `INT. SEAN'S OFFICE - DAY
 
@@ -74,7 +74,7 @@ SEAN:
 I look at you; I don't see an intelligent, confident man; I see a cocky, scared kid. But you're a genius, Will. No one denies that.`
   },
   interview: {
-    title: "Senior AI Engineer Technical Interview",
+    title: "Senior AI Engineer Technical System Architecture Interview",
     fileName: "tech_interview.txt",
     text: `INTERVIEWER:
 Welcome Alex. Thanks for joining us today for the Senior AI Engineer technical discussion at Cognizant.
@@ -98,28 +98,22 @@ We leverage model quantization, ONNX runtime acceleration, and batching mechanis
 
 const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
   const [activeTab, setActiveTab] = useState('upload'); // 'upload' | 'paste'
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [pastedText, setPastedText] = useState('');
   const [customTitle, setCustomTitle] = useState('');
+  const [pastedText, setPastedText] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
 
-  const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
-    if (rejectedFiles && rejectedFiles.length > 0) {
-      const err = rejectedFiles[0].errors[0];
-      if (err.code === 'file-too-large') {
-        toast.error('File exceeds maximum size limit of 5 MB.');
-      } else {
-        toast.error('Only .txt and .json files are supported.');
-      }
-      return;
-    }
-
-    if (acceptedFiles.length > 0) {
+  const onDrop = useCallback((acceptedFiles) => {
+    if (acceptedFiles && acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
-      setSelectedFile(file);
-      if (!customTitle) {
-        setCustomTitle(file.name.replace(/\.[^/.]+$/, '').replace(/[_\-]+/g, ' '));
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size exceeds the 5MB limit.');
+        return;
       }
-      toast.success(`File "${file.name}" selected.`);
+      setSelectedFile(file);
+      if (!customTitle.trim()) {
+        const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+        setCustomTitle(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
+      }
     }
   }, [customTitle]);
 
@@ -129,19 +123,24 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
       'text/plain': ['.txt'],
       'application/json': ['.json']
     },
-    maxSize: 5 * 1024 * 1024,
+    maxFiles: 1,
     multiple: false
   });
 
-  const handleLoadSample = (key) => {
-    const sample = SAMPLE_SCRIPTS[key];
-    if (sample) {
-      setActiveTab('paste');
-      setPastedText(sample.text);
-      setCustomTitle(sample.title);
-      setSelectedFile(null);
-      toast.success(`Loaded sample: ${sample.title}`);
-    }
+  const handleClearFile = (e) => {
+    e.stopPropagation();
+    setSelectedFile(null);
+  };
+
+  const handleLoadSample = (sampleKey) => {
+    const sample = SAMPLE_SCRIPTS[sampleKey];
+    if (!sample) return;
+
+    setActiveTab('paste');
+    setCustomTitle(sample.title);
+    setPastedText(sample.text);
+    setSelectedFile(null);
+    toast.success(`Loaded "${sample.title}" preset`);
   };
 
   const handleSubmit = (e) => {
@@ -149,9 +148,10 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
 
     if (activeTab === 'upload') {
       if (!selectedFile) {
-        toast.error('Please select or drop a transcript file.');
+        toast.error('Please select a .txt or .json transcript file.');
         return;
       }
+
       const formData = new FormData();
       formData.append('file', selectedFile);
       if (customTitle.trim()) {
@@ -160,65 +160,72 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
       onUploadSubmit({ isFile: true, payload: formData });
     } else {
       if (!pastedText.trim()) {
-        toast.error('Please paste transcript text.');
+        toast.error('Please paste raw transcript text.');
         return;
       }
+      if (pastedText.trim().length < 20) {
+        toast.error('Transcript is too short. Please provide at least 20 characters.');
+        return;
+      }
+
+      const finalTitle = customTitle.trim() || `Pasted Transcript (${new Date().toLocaleTimeString()})`;
       onUploadSubmit({
         isFile: false,
         payload: {
-          title: customTitle.trim() || 'Pasted Transcript',
-          text: pastedText.trim(),
-          fileName: 'pasted_transcript.txt'
+          title: finalTitle,
+          text: pastedText.trim()
         }
       });
     }
   };
 
+  const pastedLinesCount = pastedText.split(/\r\n|\r|\n/).length;
+
   return (
-    <div className="space-y-6">
-      {/* Sample Quick-Load Selector for Judges */}
-      <div className="bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-slate-900/60 border border-indigo-500/20 p-4 rounded-2xl">
-        <div className="flex items-center gap-2 mb-2.5 text-xs font-semibold text-indigo-300">
-          <Sparkles className="w-4 h-4 text-indigo-400" />
-          <span>Hackathon Demo Excerpts (Kaggle Movie Scripts & Transcripts)</span>
+    <div className="space-y-4">
+      {/* Compact Preset Quick-Load Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-[#F9FAFB] border border-[#E4E7EC]">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-[#475467]">
+          <Sparkles className="w-4 h-4 text-[#3157D5]" />
+          <span>Demo Presets:</span>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => handleLoadSample('matrix')}
-            className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-indigo-600/30 text-xs font-medium text-slate-200 border border-slate-700 hover:border-indigo-500/50 transition-all flex items-center gap-1.5"
+            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-[#F9FAFB] text-xs font-semibold text-[#344054] hover:text-[#101828] border border-[#D0D5DD] transition-colors flex items-center gap-1.5 cursor-pointer shadow-saas"
           >
-            <FileText className="w-3.5 h-3.5 text-purple-400" />
-            <span>The Matrix Script</span>
+            <FileText className="w-3.5 h-3.5 text-[#3157D5]" />
+            <span>Matrix Scene</span>
           </button>
           <button
             type="button"
             onClick={() => handleLoadSample('goodwill')}
-            className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-indigo-600/30 text-xs font-medium text-slate-200 border border-slate-700 hover:border-indigo-500/50 transition-all flex items-center gap-1.5"
+            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-[#F9FAFB] text-xs font-semibold text-[#344054] hover:text-[#101828] border border-[#D0D5DD] transition-colors flex items-center gap-1.5 cursor-pointer shadow-saas"
           >
-            <FileText className="w-3.5 h-3.5 text-amber-400" />
+            <FileText className="w-3.5 h-3.5 text-[#3157D5]" />
             <span>Good Will Hunting</span>
           </button>
           <button
             type="button"
             onClick={() => handleLoadSample('interview')}
-            className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-indigo-600/30 text-xs font-medium text-slate-200 border border-slate-700 hover:border-indigo-500/50 transition-all flex items-center gap-1.5"
+            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-[#F9FAFB] text-xs font-semibold text-[#344054] hover:text-[#101828] border border-[#D0D5DD] transition-colors flex items-center gap-1.5 cursor-pointer shadow-saas"
           >
-            <FileText className="w-3.5 h-3.5 text-cyan-400" />
+            <FileText className="w-3.5 h-3.5 text-[#3157D5]" />
             <span>Tech Interview</span>
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-800">
+      {/* Segmented Control Switcher */}
+      <div className="flex border-b border-[#E4E7EC]">
         <button
           type="button"
           onClick={() => setActiveTab('upload')}
-          className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'upload'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-[#3157D5] text-[#3157D5]'
+              : 'border-transparent text-[#475467] hover:text-[#101828]'
           }`}
         >
           <UploadCloud className="w-4 h-4" />
@@ -227,29 +234,29 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
         <button
           type="button"
           onClick={() => setActiveTab('paste')}
-          className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'paste'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-[#3157D5] text-[#3157D5]'
+              : 'border-transparent text-[#475467] hover:text-[#101828]'
           }`}
         >
           <Code2 className="w-4 h-4" />
-          <span>Paste Transcript Text</span>
+          <span>Paste Raw Text</span>
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Title Input */}
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-            Transcript Title <span className="text-slate-500">(Optional)</span>
+          <label className="block text-xs font-bold text-[#475467] mb-1.5">
+            Transcript Title <span className="text-[#667085] font-normal">(Optional)</span>
           </label>
           <input
             type="text"
             value={customTitle}
             onChange={(e) => setCustomTitle(e.target.value)}
-            placeholder="e.g. The Matrix Scene 1 / Q3 Strategy Review"
-            className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+            placeholder="e.g. Q3 Executive Strategy Review or Good Will Hunting Dialogue"
+            className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-[#D0D5DD] text-[#101828] placeholder-[#667085] text-xs sm:text-sm focus:outline-none focus:border-[#3157D5] focus:ring-1 focus:ring-[#3157D5] transition-all"
           />
         </div>
 
@@ -257,40 +264,48 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
           <div>
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center cursor-pointer transition-all ${
+              className={`border-2 border-dashed rounded-xl p-7 text-center cursor-pointer transition-all ${
                 isDragActive
-                  ? 'border-indigo-500 bg-indigo-500/10'
+                  ? 'border-[#3157D5] bg-[#EEF3FF]/50'
                   : selectedFile
-                  ? 'border-emerald-500/50 bg-emerald-500/5'
-                  : 'border-slate-700 hover:border-slate-600 bg-slate-900/40 hover:bg-slate-900/60'
+                  ? 'border-[#067647] bg-[#ECFDF3]/40'
+                  : 'border-[#D0D5DD] hover:border-[#3157D5] bg-[#F9FAFB] hover:bg-[#EEF3FF]/20'
               }`}
             >
               <input {...getInputProps()} />
-              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                <UploadCloud className="w-7 h-7" />
+              <div className="w-10 h-10 mx-auto mb-3 rounded-lg bg-white border border-[#E4E7EC] text-[#3157D5] flex items-center justify-center shadow-saas">
+                <UploadCloud className="w-5 h-5" />
               </div>
 
               {selectedFile ? (
-                <div className="space-y-1">
-                  <div className="flex items-center justify-center gap-2 text-sm font-bold text-emerald-400">
-                    <Check className="w-4 h-4" />
-                    <span>{selectedFile.name}</span>
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-[#E4E7EC] shadow-saas">
+                    <Check className="w-4 h-4 text-[#067647]" />
+                    <span className="text-xs font-bold text-[#101828]">{selectedFile.name}</span>
+                    <span className="text-[11px] text-[#475467] font-mono">
+                      ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleClearFile}
+                      className="ml-1 p-0.5 text-[#667085] hover:text-[#B42318] transition-colors cursor-pointer"
+                      title="Remove file"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <p className="text-xs text-slate-400 font-mono">
-                    {(selectedFile.size / 1024).toFixed(1)} KB • {selectedFile.type || 'Plain Text'}
-                  </p>
-                  <p className="text-[11px] text-slate-500 pt-2">
+                  <p className="text-xs text-[#344054]">
                     Click or drag another file to replace
                   </p>
                 </div>
               ) : (
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold text-slate-200">
-                    {isDragActive ? 'Drop the file here' : 'Drag & drop transcript file here, or browse'}
+                  <p className="text-xs sm:text-sm font-bold text-[#101828]">
+                    {isDragActive ? 'Drop file to upload' : 'Drag & drop transcript file here, or click to browse'}
                   </p>
-                  <p className="text-xs text-slate-400">
-                    Supports <span className="text-slate-300 font-mono">.txt</span> and{' '}
-                    <span className="text-slate-300 font-mono">.json</span> files up to 5 MB
+                  <p className="text-xs text-[#344054]">
+                    Supports <span className="font-mono text-[#101828] font-bold">.txt</span> and{' '}
+                    <span className="font-mono text-[#101828] font-bold">.json</span> files up to 5 MB
                   </p>
                 </div>
               )}
@@ -298,18 +313,18 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
           </div>
         ) : (
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Raw Transcript Text <span className="text-rose-400">*</span>
+            <label className="block text-xs font-bold text-[#475467] mb-1.5">
+              Raw Transcript Text <span className="text-[#B42318]">*</span>
             </label>
             <textarea
-              rows={10}
+              rows={8}
               value={pastedText}
               onChange={(e) => setPastedText(e.target.value)}
-              placeholder="Paste dialogue, interview text, meeting minutes, or movie script with scene headings (e.g. INT. SCENE - DAY)..."
-              className="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all leading-relaxed"
+              placeholder="Paste dialogue with speaker labels (e.g. TRINITY: ...) or scene headings (e.g. INT. SCENE - DAY)..."
+              className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-[#D0D5DD] text-[#101828] placeholder-[#667085] text-xs font-mono focus:outline-none focus:border-[#3157D5] focus:ring-1 focus:ring-[#3157D5] transition-all leading-relaxed"
             />
-            <div className="flex justify-between text-xs text-slate-500 mt-1">
-              <span>Supports movie scripts, dialogues, speaker colons, and timestamps.</span>
+            <div className="flex justify-between text-xs text-[#475467] mt-1 font-mono font-bold">
+              <span>{pastedLinesCount} lines</span>
               <span>{pastedText.length} characters</span>
             </div>
           </div>
@@ -318,17 +333,17 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
         <button
           type="submit"
           disabled={isSubmitting || (activeTab === 'upload' && !selectedFile) || (activeTab === 'paste' && !pastedText.trim())}
-          className="w-full py-3 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2"
+          className="w-full h-11 px-4 rounded-lg bg-[#3157D5] hover:bg-[#2446B8] disabled:bg-[#E4E7EC] disabled:text-[#667085] disabled:cursor-not-allowed text-white font-semibold text-xs sm:text-sm transition-all shadow-saas flex items-center justify-center gap-2 cursor-pointer"
         >
           {isSubmitting ? (
             <>
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span>Uploading & Queuing Pipeline...</span>
+              <span>Analyzing Transcript...</span>
             </>
           ) : (
             <>
               <Sparkles className="w-4 h-4" />
-              <span>Extract Metadata & Analyze</span>
+              <span>Analyze Transcript</span>
             </>
           )}
         </button>

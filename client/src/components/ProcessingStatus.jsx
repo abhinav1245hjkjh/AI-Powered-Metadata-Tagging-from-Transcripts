@@ -1,107 +1,85 @@
 import React from 'react';
-import { CheckCircle2, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import StatusBadge from './StatusBadge';
 
-const stages = [
-  'Uploading',
-  'Parsing',
-  'Extracting metadata',
-  'Analyzing sentiment',
-  'Detecting entities',
-  'Generating classification',
-  'Completed'
+const analysisStages = [
+  { key: 'upload', label: 'Transcript Ingestion' },
+  { key: 'spacy', label: 'Named Entities' },
+  { key: 'vader', label: 'Sentiment Valence' },
+  { key: 'roberta', label: 'Emotional Tone' },
+  { key: 'keybert', label: 'Key Topics & Phrases' },
+  { key: 'bart', label: 'Domain Classification' }
 ];
 
-const ProcessingStatus = ({ status = 'processing', error = null }) => {
-  if (status === 'completed') {
-    return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-        <span>Completed</span>
-      </div>
-    );
-  }
-
-  if (status === 'failed') {
-    return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-        <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
-        <span>Failed</span>
-      </div>
-    );
-  }
-
-  if (status === 'queued') {
-    return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-        <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-        <span>Queued</span>
-      </div>
-    );
-  }
-
-  // Processing state
-  return (
-    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
-      <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
-      <span>AI Processing...</span>
-    </div>
-  );
+export const ProcessingStatus = ({ status = 'processing' }) => {
+  return <StatusBadge status={status} size="sm" />;
 };
 
 export const ProcessingStepper = ({ status = 'processing' }) => {
   const isCompleted = status === 'completed';
   const isFailed = status === 'failed';
+  const isQueued = status === 'queued';
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl space-y-3">
-      <div className="flex items-center justify-between text-xs font-medium text-slate-400">
-        <span className="flex items-center gap-2">
+    <div className="saas-card p-5 space-y-3.5 bg-white border border-[#E4E7EC] rounded-xl shadow-saas">
+      <div className="flex items-center justify-between text-xs border-b border-[#EAECF0] pb-3">
+        <div className="flex items-center gap-2">
           {isCompleted ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 text-[#15803D]" />
           ) : isFailed ? (
-            <AlertCircle className="w-4 h-4 text-rose-400" />
+            <AlertCircle className="w-4 h-4 text-[#B42318]" />
           ) : (
-            <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+            <Loader2 className="w-4 h-4 text-[#3157D5] animate-spin" />
           )}
-          <span className="font-semibold text-slate-200">
-            {isCompleted ? 'Analysis Completed' : isFailed ? 'Analysis Failed' : 'AI Pipeline In Progress'}
+          <span className="font-bold text-[#172033]">
+            {isCompleted
+              ? 'Metadata Extraction Complete'
+              : isFailed
+              ? 'Analysis Failed'
+              : isQueued
+              ? 'Queued for Analysis'
+              : 'Extracting Metadata & Insights...'}
           </span>
-        </span>
-        <ProcessingStatus status={status} />
+        </div>
+        <StatusBadge status={status} size="xs" />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-        {stages.map((stage, idx) => {
-          let stepStatus = 'upcoming';
-          if (isCompleted) stepStatus = 'done';
-          else if (isFailed) stepStatus = idx === 0 ? 'done' : 'error';
-          else if (status === 'queued') stepStatus = idx === 0 ? 'active' : 'upcoming';
-          else {
-            // Simulated active progressing stages
-            stepStatus = idx <= 4 ? 'done' : idx === 5 ? 'active' : 'upcoming';
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+        {analysisStages.map((stage, idx) => {
+          let stepState = 'pending';
+          if (isCompleted) {
+            stepState = 'done';
+          } else if (isFailed) {
+            stepState = idx === 0 ? 'done' : 'error';
+          } else if (isQueued) {
+            stepState = idx === 0 ? 'active' : 'pending';
+          } else {
+            stepState = idx <= 3 ? 'done' : idx === 4 ? 'active' : 'pending';
           }
 
           return (
             <div
-              key={idx}
-              className={`p-2 rounded-lg border text-xs flex items-center gap-2 transition-all ${
-                stepStatus === 'done'
-                  ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
-                  : stepStatus === 'active'
-                  ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-300 shadow-sm'
-                  : stepStatus === 'error'
-                  ? 'bg-rose-500/5 border-rose-500/20 text-rose-300'
-                  : 'bg-slate-800/40 border-slate-800 text-slate-500'
+              key={stage.key}
+              className={`p-2.5 rounded-lg border text-xs flex items-center gap-2 transition-all ${
+                stepState === 'done'
+                  ? 'bg-[#ECFDF3] border-[#D1FADF] text-[#15803D]'
+                  : stepState === 'active'
+                  ? 'bg-[#EEF3FF] border-[#C7D7FE] text-[#3157D5] shadow-saas font-semibold'
+                  : stepState === 'error'
+                  ? 'bg-[#FEF3F2] border-[#FECDCA] text-[#B42318]'
+                  : 'bg-[#F9FAFB] border-[#E4E7EC] text-[#667085]'
               }`}
             >
-              {stepStatus === 'done' ? (
-                <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-              ) : stepStatus === 'active' ? (
-                <Loader2 className="w-3 h-3 text-indigo-400 animate-spin flex-shrink-0" />
+              {stepState === 'done' ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#15803D] flex-shrink-0" />
+              ) : stepState === 'active' ? (
+                <Loader2 className="w-3.5 h-3.5 text-[#3157D5] animate-spin flex-shrink-0" />
+              ) : stepState === 'error' ? (
+                <AlertCircle className="w-3.5 h-3.5 text-[#B42318] flex-shrink-0" />
               ) : (
-                <div className="w-2 h-2 rounded-full bg-slate-600 flex-shrink-0" />
+                <div className="w-2 h-2 rounded-full bg-[#D0D5DD] flex-shrink-0" />
               )}
-              <span className="truncate">{stage}</span>
+              <span className="truncate text-[11px] font-medium">{stage.label}</span>
             </div>
           );
         })}

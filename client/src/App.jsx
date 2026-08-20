@@ -6,7 +6,10 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
+import Transcripts from './pages/Transcripts';
 import TranscriptDetail from './pages/TranscriptDetail';
+import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
 
 // Protected route guard
 const ProtectedRoute = ({ children }) => {
@@ -14,8 +17,8 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0B0F19] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#F6F7F9] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#3157D5]/30 border-t-[#3157D5] rounded-full animate-spin" />
       </div>
     );
   }
@@ -33,8 +36,8 @@ const PublicRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0B0F19] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#F6F7F9] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#3157D5]/30 border-t-[#3157D5] rounded-full animate-spin" />
       </div>
     );
   }
@@ -83,10 +86,34 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/transcripts"
+        element={
+          <ProtectedRoute>
+            <Transcripts />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/transcripts/:id"
         element={
           <ProtectedRoute>
             <TranscriptDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <Analytics />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
           </ProtectedRoute>
         }
       />
@@ -105,24 +132,25 @@ export default function App() {
         <Toaster
           position="top-right"
           toastOptions={{
-            duration: 4000,
+            duration: 3500,
             style: {
-              background: '#111827',
-              color: '#F3F4F6',
-              border: '1px solid #374151',
+              background: '#FFFFFF',
+              color: '#172033',
+              border: '1px solid #E4E7EC',
               borderRadius: '0.75rem',
-              fontSize: '0.875rem'
+              fontSize: '0.8125rem',
+              boxShadow: '0 4px 6px -2px rgba(16, 24, 40, 0.03), 0 12px 16px -4px rgba(16, 24, 40, 0.08)'
             },
             success: {
               iconTheme: {
-                primary: '#10B981',
-                secondary: '#111827'
+                primary: '#15803D',
+                secondary: '#FFFFFF'
               }
             },
             error: {
               iconTheme: {
-                primary: '#EF4444',
-                secondary: '#111827'
+                primary: '#B42318',
+                secondary: '#FFFFFF'
               }
             }
           }}

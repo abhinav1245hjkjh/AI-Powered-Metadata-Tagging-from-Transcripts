@@ -10,23 +10,32 @@ import {
 } from 'recharts';
 
 const emotionColors = {
-  joy: '#10B981',       // Emerald
-  surprise: '#06B6D4',  // Cyan
-  neutral: '#6B7280',   // Gray
-  sadness: '#3B82F6',   // Blue
-  fear: '#8B5CF6',      // Purple
-  disgust: '#F59E0B',   // Amber
-  anger: '#EF4444',     // Red
+  joy: '#067647',
+  optimism: '#059669',
+  enthusiasm: '#B54708',
+  trust: '#3157D5',
+  curiosity: '#175CD3',
+  surprise: '#6941C6',
+  sadness: '#475467',
+  anger: '#B42318',
+  fear: '#5925DC',
+  disgust: '#912018',
+  frustration: '#7A271A',
+  neutral: '#344054',
 };
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+    const color = emotionColors[data.label.toLowerCase()] || '#3157D5';
     return (
-      <div className="bg-slate-900/95 border border-slate-700 p-2.5 rounded-lg shadow-xl text-xs">
-        <p className="font-semibold text-slate-200 capitalize">{data.label}</p>
-        <p className="text-indigo-400 font-mono font-medium mt-0.5">
-          Confidence: {(data.score * 100).toFixed(2)}%
+      <div className="bg-white border border-[#E4E7EC] p-3 rounded-lg shadow-dropdown text-xs">
+        <div className="flex items-center gap-2 font-bold text-[#101828] capitalize">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+          <span>{data.label}</span>
+        </div>
+        <p className="text-[#3157D5] font-mono font-bold mt-1">
+          Confidence: {(data.score * 100).toFixed(1)}%
         </p>
       </div>
     );
@@ -37,49 +46,57 @@ const CustomTooltip = ({ active, payload }) => {
 const EmotionChart = ({ emotions = [] }) => {
   if (!emotions || emotions.length === 0) {
     return (
-      <div className="text-sm text-slate-400 italic py-6 text-center">
+      <div className="text-xs text-[#475467] italic py-6 text-center bg-[#F9FAFB] rounded-xl border border-[#E4E7EC]">
         No emotion distribution detected.
       </div>
     );
   }
 
-  // Format data for Recharts
-  const chartData = emotions.map((item) => ({
+  // Filter to emotions with meaningful score (> 1%) or top 6
+  const activeEmotions = emotions.filter((e) => (e.score || 0) > 0.01);
+  const displayEmotions = activeEmotions.length > 0 ? activeEmotions.slice(0, 8) : emotions.slice(0, 6);
+
+  const chartData = displayEmotions.map((item) => ({
     label: item.label,
     score: item.score,
-    percentage: Math.round(item.score * 100)
+    percentage: Math.max(0, Math.min(100, Math.round(item.score * 100)))
   }));
 
+  const containerHeight = Math.min(320, Math.max(200, chartData.length * 30));
+
   return (
-    <div className="w-full h-64 pt-2">
+    <div className="w-full pt-1" style={{ height: `${containerHeight}px` }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={chartData}
           layout="vertical"
-          margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+          margin={{ top: 2, right: 24, left: 45, bottom: 2 }}
         >
           <XAxis
             type="number"
             domain={[0, 100]}
             tickFormatter={(val) => `${val}%`}
-            stroke="#64748b"
-            fontSize={11}
+            stroke="#D0D5DD"
+            fontSize={10}
+            tick={{ fill: '#475467' }}
+            tickLine={false}
           />
           <YAxis
             type="category"
             dataKey="label"
-            stroke="#94a3b8"
-            fontSize={12}
+            stroke="#D0D5DD"
+            fontSize={11}
             tickLine={false}
             axisLine={false}
-            tick={{ fill: '#cbd5e1', textTransform: 'capitalize' }}
+            width={72}
+            tick={{ fill: '#101828', textTransform: 'capitalize', fontWeight: 600 }}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Bar dataKey="percentage" radius={[0, 4, 4, 0]} barSize={16}>
+          <Bar dataKey="percentage" radius={[0, 4, 4, 0]} barSize={12}>
             {chartData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={emotionColors[entry.label.toLowerCase()] || '#6366f1'}
+                fill={emotionColors[entry.label.toLowerCase()] || '#3157D5'}
               />
             ))}
           </Bar>

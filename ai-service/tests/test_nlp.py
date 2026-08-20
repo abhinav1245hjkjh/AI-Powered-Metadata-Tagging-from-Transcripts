@@ -3,8 +3,8 @@ from app.main import app
 from app.nlp.keywords import extract_keywords
 from app.nlp.entities import extract_entities
 from app.nlp.sentiment import analyze_sentiment
-from app.nlp.emotion import analyze_emotions
-from app.nlp.classify import classify_content
+from app.nlp.emotion import analyze_emotions, ALL_EMOTIONS
+from app.nlp.classify import classify_content, CANDIDATE_LABELS
 from app.nlp.speakers import identify_speakers
 from app.nlp.segmentation import segment_transcript
 
@@ -31,6 +31,11 @@ ALEX: Thank you Sarah. We use FastAPI and PyTorch with transformer models.
 INTERVIEWER: Excellent. How do you handle scalability on Google Cloud Platform?
 ALEX: We scale container pods using Kubernetes and optimize latency with ONNX.
 """
+
+SAMPLE_TECH_MEETING = """ENGINEER: We deployed the Kubernetes microservice cluster for the backend API.
+ARCHITECT: Outstanding work. The Docker containers and database latency are both optimal.
+"""
+
 
 def test_health_endpoints():
     client = get_test_client()
@@ -60,7 +65,6 @@ def test_keywords_empty():
 def test_entities_extraction():
     entities = extract_entities(SAMPLE_INTERVIEW)
     assert isinstance(entities, list)
-    # Check shape
     for ent in entities:
         assert "text" in ent
         assert "label" in ent
@@ -69,20 +73,29 @@ def test_entities_extraction():
 
 def test_sentiment_analysis():
     pos_res = analyze_sentiment("I am extremely delighted and happy with this phenomenal achievement!")
-    assert pos_res["polarity"] in ["positive", "neutral"]
+    assert pos_res["polarity"] == "positive"
     assert isinstance(pos_res["score"], float)
+    assert pos_res["score"] > 0
 
-    neg_res = analyze_sentiment("This is a horrific, dreadful, and catastrophic failure.")
-    assert neg_res["polarity"] in ["negative", "neutral"]
+    neg_res = analyze_sentiment("This is a horrific, dreadful, and catastrophic failure and disaster.")
+    assert neg_res["polarity"] == "negative"
     assert isinstance(neg_res["score"], float)
+    assert neg_res["score"] < 0
+
+    neutral_res = analyze_sentiment("The quarterly meeting is scheduled on Tuesday at 10 AM.")
+    assert neutral_res["polarity"] in ["neutral", "positive"]
 
 
 def test_emotion_analysis():
     emotions = analyze_emotions("I am so terrified and scared of what might happen in the dark!")
     assert isinstance(emotions, list)
-    assert len(emotions) > 0
+    assert len(emotions) >= 7
     assert all("label" in e and "score" in e for e in emotions)
-    # Total scores should be approximately normalized
+    
+    # Check that labels come from ALL_EMOTIONS
+    labels = [e["label"] for e in emotions]
+    assert "fear" in labels or "anxiety" in labels or "anger" in labels
+    
     total_score = sum(e["score"] for e in emotions)
     assert 0.8 <= total_score <= 1.2
 
@@ -94,7 +107,6 @@ def test_speaker_identification():
     assert "TRINITY" in speaker_names
     assert "AGENT SMITH" in speaker_names or "SMITH" in "".join(speaker_names)
     
-    # Check lineCount
     for s in speakers:
         assert s["lineCount"] >= 1
 
@@ -114,11 +126,14 @@ def test_scene_segmentation():
 
 def test_content_classification():
     cat_script = classify_content(SAMPLE_MATRIX_SCRIPT, filename="matrix_script.txt")
-    assert cat_script["label"] in ["entertainment", "interview", "meeting", "education", "news"]
+    assert cat_script["label"] in CANDIDATE_LABELS
     assert 0.0 <= cat_script["confidence"] <= 1.0
 
     cat_interview = classify_content(SAMPLE_INTERVIEW, filename="tech_interview.txt")
-    assert cat_interview["label"] in ["interview", "entertainment", "meeting", "education", "news"]
+    assert cat_interview["label"] in CANDIDATE_LABELS
+
+    cat_tech = classify_content(SAMPLE_TECH_MEETING, filename="system_architecture.txt")
+    assert cat_tech["label"] in CANDIDATE_LABELS
 
 
 def test_analyze_endpoint_full():
