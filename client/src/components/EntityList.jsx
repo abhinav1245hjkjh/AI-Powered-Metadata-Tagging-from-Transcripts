@@ -15,13 +15,14 @@ const normalizeEntity = (ent) => {
 
 const categorizeLabel = (label) => {
   const upper = (label || 'OTHER').toUpperCase();
-  if (upper === 'PERSON') return 'People';
-  if (upper === 'ORG' || upper === 'ORGANIZATION') return 'Organizations';
-  if (upper === 'GPE' || upper === 'LOC' || upper === 'LOCATION' || upper === 'FAC') return 'Locations';
-  if (upper === 'DATE' || upper === 'TIME') return 'Dates & Times';
-  if (upper === 'PRODUCT' || upper === 'WORK_OF_ART' || upper === 'EVENT') return 'Products & Events';
+  if (upper === 'PERSON' || upper === 'PEOPLE') return 'People';
+  if (upper === 'ORG' || upper === 'ORGANIZATION' || upper === 'ORGANIZATIONS') return 'Organizations';
+  if (upper === 'GPE' || upper === 'LOC' || upper === 'LOCATION' || upper === 'LOCATIONS' || upper === 'FAC') return 'Locations';
+  if (upper === 'DATE' || upper === 'TIME' || upper === 'DATES_TIMES') return 'Dates & Times';
+  if (upper === 'PRODUCT' || upper === 'WORK_OF_ART' || upper === 'EVENT' || upper === 'PRODUCTS_EVENTS') return 'Products & Events';
   return 'Other Entities';
 };
+
 
 const EntityList = ({ entities = [], grouped = false }) => {
   const [selectedType, setSelectedType] = useState('ALL');

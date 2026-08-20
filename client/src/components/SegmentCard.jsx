@@ -39,13 +39,20 @@ export const SegmentCard = ({ segment, defaultExpanded = false }) => {
               <span className="font-bold text-xs text-[#101828]">
                 {segment.heading}
               </span>
+              {segment.speaker && (
+                <span className="px-2 py-0.5 rounded bg-[#EEF3FF] text-[#3157D5] text-[10px] font-bold border border-[#C7D7FE]">
+                  {segment.speaker}
+                </span>
+              )}
             </div>
 
-            {!isExpanded && segment.text && (
+            {!isExpanded && (
               <p className="text-xs text-[#344054] line-clamp-2 leading-relaxed font-sans font-normal">
-                {segment.text.split('\n')[0]}
+                {segment.excerpt || segment.preview || segment.text || 'No transcript preview available'}
               </p>
             )}
+
+
           </div>
         </div>
 

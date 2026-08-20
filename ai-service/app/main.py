@@ -13,8 +13,9 @@ from app.nlp.entities import extract_entities, get_spacy_model
 from app.nlp.sentiment import analyze_sentiment, get_vader_analyzer
 from app.nlp.emotion import analyze_emotions, get_emotion_pipeline
 from app.nlp.classify import classify_content, get_classifier_pipeline
-from app.nlp.speakers import identify_speakers
+from app.nlp.speakers import identify_speakers, count_words, extract_speaker_handoffs
 from app.nlp.segmentation import segment_transcript
+from app.nlp.guardrails import validate_and_normalize_metadata
 
 logging.basicConfig(
     level=logging.INFO,
@@ -110,27 +111,39 @@ async def analyze_transcript(payload: AnalyzeRequest):
         # 4. Emotion Analysis
         emotions = analyze_emotions(raw_text)
 
-        # 5. Speaker Identification
+        # 5. Speaker Identification & Canonical Word Counts
         speakers = identify_speakers(raw_text)
 
         # 6. Scene & Dialogue Segmentation
         segments = segment_transcript(raw_text)
 
-        # 7. Content Classification
+        # 7. Speaker Handoffs Extraction
+        handoffs = extract_speaker_handoffs(segments)
+
+        # 8. Content Classification
         category = classify_content(raw_text, filename=filename)
 
-        response_data = {
+        # Total Word Count via canonical tokenizer
+        total_words = count_words(raw_text)
+
+        raw_response = {
+            "wordCount": total_words,
             "keywords": keywords,
             "entities": entities,
             "sentiment": sentiment,
             "emotions": emotions,
             "speakers": speakers,
             "segments": segments,
+            "handoffs": handoffs,
             "category": category
         }
 
-        logger.info("Successfully completed transcript analysis.")
-        return response_data
+        # 9. Pass through centralized guardrails validation & normalization layer
+        validated_response = validate_and_normalize_metadata(raw_response, filename=filename)
+
+
+        logger.info("Successfully completed transcript analysis and guardrail validation.")
+        return validated_response
 
     except Exception as e:
         logger.error(f"Error during transcript analysis: {e}", exc_info=True)
