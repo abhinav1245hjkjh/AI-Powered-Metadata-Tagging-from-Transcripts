@@ -61,7 +61,7 @@ const Settings = () => {
               <h3 className="font-bold text-sm text-[#101828]">NLP Architecture Specifications</h3>
             </div>
             <a
-              href="http://localhost:8000/docs"
+              href={import.meta.env.VITE_AI_SERVICE_DOCS_URL || "http://localhost:8000/docs"}
               target="_blank"
               rel="noreferrer"
               className="text-xs text-[#3157D5] hover:text-[#2446B8] font-bold inline-flex items-center gap-1"

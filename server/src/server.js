@@ -14,8 +14,17 @@ const app = express();
 
 // Middleware
 app.use(morgan('dev'));
+
+const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.trim().replace(/\/+$/, '') : null;
+const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.trim().replace(/\/+$/, '') : null;
+const customOrigin = clientUrl || frontendUrl;
+
+const allowedOrigins = customOrigin
+  ? [customOrigin, `${customOrigin}/`, 'http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173']
+  : '*';
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -31,10 +40,20 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({
+  const isDbConnected = mongoose.connection.readyState === 1;
+  if (!isDbConnected) {
+    return res.status(503).json({
+      status: 'unhealthy',
+      message: 'Database connection is unavailable',
+      timestamp: new Date().toISOString(),
+      database: 'disconnected'
+    });
+  }
+
+  return res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    database: 'connected'
   });
 });
 
@@ -62,37 +81,49 @@ app.use((err, req, res, next) => {
 
 // Database connection & Server initialization
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/metamind_ai';
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 let server = null;
 
 const initializeDatabaseAndStartServer = async () => {
-  try {
-    // Attempt connecting to configured Mongo URI with a short 3s timeout
-    console.log(`[MongoDB] Connecting to ${MONGO_URI}...`);
-    await mongoose.connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 3000
-    });
-    console.log(`[MongoDB] Connected successfully to ${MONGO_URI}`);
-  } catch (err) {
-    console.warn(`[MongoDB] Could not reach external MongoDB (${err.message}).`);
-    console.log('[MongoDB] Starting embedded MongoDB engine for instant local operation...');
-    
+  if (MONGO_URI) {
+    console.log('[MongoDB] Connecting to configured database...');
+    try {
+      // Set bufferCommands to false in production to prevent 10s silent query buffering timeouts
+      if (process.env.NODE_ENV === 'production') {
+        mongoose.set('bufferCommands', false);
+      }
+
+      await mongoose.connect(MONGO_URI, {
+        serverSelectionTimeoutMS: 15000
+      });
+      console.log('[MongoDB] Connected successfully to database');
+    } catch (err) {
+      console.error(`[MongoDB] Critical: Connection failed (${err.message}). Exiting process...`);
+      process.exit(1);
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    console.error('[MongoDB] Critical: MONGO_URI environment variable is missing in production. Exiting process...');
+    process.exit(1);
+  } else {
+    // Local development fallback to embedded MongoMemoryServer
+    console.log('[MongoDB] MONGO_URI not set. Initializing local embedded MongoDB for development...');
     try {
       const { MongoMemoryServer } = require('mongodb-memory-server');
       const mongoServer = await MongoMemoryServer.create();
       const inMemoryUri = mongoServer.getUri();
       await mongoose.connect(inMemoryUri);
-      console.log(`[MongoDB] Embedded MongoDB ready and connected at ${inMemoryUri}`);
+      console.log(`[MongoDB] Embedded local MongoDB ready and connected at ${inMemoryUri}`);
     } catch (memErr) {
       console.error('[MongoDB] Embedded MongoDB startup error:', memErr.message);
+      process.exit(1);
     }
   }
 
-  server = app.listen(PORT, () => {
+  server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`===================================================`);
-    console.log(`[MetaMind Server] API running on http://localhost:${PORT}`);
-    console.log(`[MetaMind Server] Health: http://localhost:${PORT}/api/health`);
+    console.log(`[MetaMind Server] API running on port ${PORT}`);
+    console.log(`[MetaMind Server] Health endpoint: /api/health`);
     console.log(`===================================================`);
   });
 };
