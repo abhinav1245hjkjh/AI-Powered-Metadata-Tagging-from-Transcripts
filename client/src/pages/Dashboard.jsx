@@ -14,8 +14,6 @@ import {
   Layers,
   Sparkles,
   Users,
-  Plus,
-  RefreshCw,
   ArrowRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -136,25 +134,6 @@ const Dashboard = () => {
       <PageHeader
         title="Metadata Intelligence Overview"
         subtitle="Real-time transcript metadata and structured intelligence across your transcript library."
-        actions={
-          <>
-            <button
-              onClick={() => fetchTranscripts()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-[#F9FAFB] text-[#344054] hover:text-[#101828] border border-[#D0D5DD] text-xs sm:text-sm font-semibold transition-colors shadow-saas cursor-pointer"
-              title="Refresh transcripts"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-[#475467]" />
-              <span>Refresh</span>
-            </button>
-            <Link
-              to="/upload"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#3157D5] hover:bg-[#2446B8] text-white text-xs sm:text-sm font-semibold shadow-saas transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Upload Transcript</span>
-            </Link>
-          </>
-        }
       />
 
       {/* 5 Real Aggregate KPI Cards with Equal Dimensions */}

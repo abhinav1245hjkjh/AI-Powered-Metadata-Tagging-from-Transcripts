@@ -21,8 +21,7 @@ import {
   Users,
   Compass,
   HeartHandshake,
-  Tag,
-  RefreshCw
+  Tag
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -230,16 +229,6 @@ const Analytics = () => {
       <PageHeader
         title="Metadata Intelligence Analytics"
         subtitle="Explore aggregated NLP insights, domain distributions, and sentiment trends across your transcript library."
-        actions={
-          <button
-            onClick={() => loadData(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-[#F9FAFB] text-[#344054] hover:text-[#111827] border border-[#D0D5DD] text-xs sm:text-sm font-semibold transition-colors shadow-saas cursor-pointer"
-            title="Refresh analytics data"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-[#475467]" />
-            <span>Refresh</span>
-          </button>
-        }
       />
 
       {/* KPI Cards */}

@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import AppShell from '../components/AppShell';
 import PageHeader from '../components/PageHeader';
 import FilterBar from '../components/FilterBar';
 import DataTable from '../components/DataTable';
-import { Plus, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Transcripts = () => {
@@ -98,25 +96,6 @@ const Transcripts = () => {
       <PageHeader
         title="Transcript Library"
         subtitle="Search, filter, and inspect structured metadata models across all uploaded scripts and dialogue files."
-        actions={
-          <>
-            <button
-              onClick={() => fetchTranscripts()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-[#F9FAFB] text-[#344054] hover:text-[#101828] border border-[#D0D5DD] text-xs sm:text-sm font-semibold transition-colors shadow-saas cursor-pointer"
-              title="Refresh transcripts"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-[#475467]" />
-              <span>Refresh</span>
-            </button>
-            <Link
-              to="/upload"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#3157D5] hover:bg-[#2446B8] text-white text-xs sm:text-sm font-semibold shadow-saas transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Upload Transcript</span>
-            </Link>
-          </>
-        }
       />
 
       <FilterBar
