@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 const generateToken = (userId) => {
@@ -12,6 +13,13 @@ const generateToken = (userId) => {
 // @access  Public
 const register = async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database service is currently unavailable. Please check MONGO_URI configuration and network access.'
+      });
+    }
+
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
@@ -82,6 +90,12 @@ const register = async (req, res) => {
 // @access  Public
 const login = async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database service is currently unavailable. Please check MONGO_URI configuration and network access.'
+      });
+    }
     const { email, password } = req.body;
 
     if (!email || !password) {

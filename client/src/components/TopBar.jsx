@@ -117,7 +117,7 @@ const TopBar = ({ onToggleSidebar, isSidebarOpen }) => {
           </div>
 
           <a
-            href="http://localhost:8000/docs"
+            href={import.meta.env.VITE_AI_SERVICE_DOCS_URL || "http://localhost:8000/docs"}
             target="_blank"
             rel="noreferrer"
             className="hidden md:inline-flex items-center gap-1 text-xs text-[#667085] hover:text-[#172033] transition-colors font-medium px-2.5 py-1.5 rounded-lg border border-[#D0D5DD] hover:bg-[#F9FAFB]"

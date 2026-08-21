@@ -1,7 +1,11 @@
 const axios = require('axios');
 const Transcript = require('../models/Transcript');
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+let rawAiUrl = (process.env.AI_SERVICE_URL || 'http://localhost:8000').trim().replace(/\/+$/, '');
+if (!rawAiUrl.startsWith('http://') && !rawAiUrl.startsWith('https://')) {
+  rawAiUrl = `http://${rawAiUrl}`;
+}
+const AI_SERVICE_URL = rawAiUrl;
 
 /**
  * Sends transcript text to the Python FastAPI NLP microservice and updates MongoDB document.
