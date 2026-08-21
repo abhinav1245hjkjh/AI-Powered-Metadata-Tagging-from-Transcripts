@@ -6,23 +6,23 @@ const StatusBadge = ({ status = 'queued', size = 'sm' }) => {
   const configs = {
     completed: {
       label: 'Completed',
-      dotColor: 'bg-[#067647]',
-      className: 'bg-[#ECFDF3] text-[#067647] border-[#D1FADF]'
+      dotColor: 'bg-[#16A34A]',
+      className: 'bg-[#DCFCE7] text-[#15803D] border-[#BBF7D0]'
     },
     processing: {
       label: 'Processing',
-      dotColor: 'bg-[#B54708] animate-pulse',
-      className: 'bg-[#FFFAEB] text-[#B54708] border-[#FEDF89]'
+      dotColor: 'bg-[#2563EB] animate-pulse',
+      className: 'bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE]'
     },
     queued: {
       label: 'Queued',
-      dotColor: 'bg-[#475467]',
-      className: 'bg-[#F2F4F7] text-[#344054] border-[#EAECF0]'
+      dotColor: 'bg-[#64748B]',
+      className: 'bg-[#F1F5F9] text-[#475467] border-[#E2E8F0]'
     },
     failed: {
       label: 'Failed',
-      dotColor: 'bg-[#B42318]',
-      className: 'bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]'
+      dotColor: 'bg-[#DC2626]',
+      className: 'bg-[#FEF2F2] text-[#B42318] border-[#FCA5A5]'
     }
   };
 
@@ -36,7 +36,7 @@ const StatusBadge = ({ status = 'queued', size = 'sm' }) => {
 
   return (
     <span
-      className={`inline-flex items-center rounded-md font-semibold border font-mono ${config.className} ${sizeClasses[size] || sizeClasses.sm}`}
+      className={`inline-flex items-center rounded-lg font-semibold border font-mono ${config.className} ${sizeClasses[size] || sizeClasses.sm}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor} flex-shrink-0`} />
       <span>{config.label}</span>

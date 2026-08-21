@@ -17,8 +17,8 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F6F7F9] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#3157D5]/30 border-t-[#3157D5] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#F4F7FC] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
       </div>
     );
   }
@@ -36,22 +36,47 @@ const PublicRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F6F7F9] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#3157D5]/30 border-t-[#3157D5] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#F4F7FC] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
       </div>
     );
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
 };
 
+// Root Landing Route
+// Unauthenticated visitors see Signup page (default landing page at /)
+// Authenticated users get redirected to /dashboard
+const RootRoute = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F4F7FC] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Signup />;
+};
+
 function AppRoutes() {
   return (
     <Routes>
+      {/* Default Landing Page: Create Account for unauthenticated visitors */}
+      <Route path="/" element={<RootRoute />} />
+
+      {/* Public Auth Routes */}
       <Route
         path="/login"
         element={
@@ -69,8 +94,9 @@ function AppRoutes() {
         }
       />
 
+      {/* Protected App Routes */}
       <Route
-        path="/"
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <Dashboard />

@@ -7,6 +7,7 @@ import SentimentBadge from '../components/SentimentBadge';
 import CategoryBadge from '../components/CategoryBadge';
 import { DetailHeaderSkeleton, CardSkeleton } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import EntityList from '../components/EntityList';
 import TopicList from '../components/TopicList';
 import SpeakerIntelligence from '../components/SpeakerIntelligence';
@@ -46,6 +47,8 @@ const TranscriptDetail = () => {
   const [transcript, setTranscript] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [transcriptViewerSearch, setTranscriptViewerSearch] = useState('');
 
@@ -81,15 +84,22 @@ const TranscriptDetail = () => {
     };
   }, [transcript]);
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${transcript.title}"?`)) return;
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
     try {
       await api.delete(`/transcripts/${id}`);
-      toast.success('Transcript deleted.');
+      toast.success('Transcript deleted successfully.');
       navigate('/transcripts');
     } catch (err) {
-      toast.error('Failed to delete transcript.');
+      console.error('Delete transcript error:', err);
+      toast.error(err.response?.data?.message || 'Unable to delete transcript. Please try again.');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -215,8 +225,8 @@ const TranscriptDetail = () => {
           )}
 
           <button
-            onClick={handleDelete}
-            className="p-2 rounded-lg text-[#667085] hover:text-[#B42318] hover:bg-[#FEF3F2] transition-colors cursor-pointer"
+            onClick={handleDeleteClick}
+            className="p-2 rounded-lg text-[#64748B] hover:text-[#DC2626] hover:bg-[#FEF2F2] transition-colors cursor-pointer"
             title="Delete transcript"
           >
             <Trash2 className="w-4 h-4" />
@@ -608,6 +618,14 @@ const TranscriptDetail = () => {
           initialSearchQuery={transcriptViewerSearch}
         />
       )}
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        transcriptTitle={transcript?.title || ''}
+        isDeleting={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </AppShell>
   );
 };

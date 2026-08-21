@@ -83,13 +83,21 @@ export const computeLibraryMetrics = (transcripts = []) => {
   if (!Array.isArray(transcripts) || transcripts.length === 0) {
     return {
       total: 0,
+      totalCount: 0,
       processed: 0,
+      completedCount: 0,
       processing: 0,
+      processingCount: 0,
       failed: 0,
+      failedCount: 0,
+      completionPercentage: 0,
       totalWords: 0,
       totalSegments: 0,
       totalEntities: 0,
-      distinctSpeakers: 0
+      totalEntitiesCount: 0,
+      distinctSpeakers: 0,
+      totalSpeakersCount: 0,
+      uniqueCategoriesCount: 0
     };
   }
 
@@ -101,6 +109,7 @@ export const computeLibraryMetrics = (transcripts = []) => {
   let totalSegments = 0;
   let totalEntities = 0;
   const distinctSpeakerSet = new Set();
+  const categorySet = new Set();
 
   transcripts.forEach((t) => {
     const status = t.status || 'queued';
@@ -113,6 +122,13 @@ export const computeLibraryMetrics = (transcripts = []) => {
     }
 
     totalWords += getTranscriptWordCount(t);
+
+    if (t.metadata) {
+      const catLabel = typeof t.metadata.category === 'object' ? t.metadata.category?.label : t.metadata.category;
+      if (catLabel && String(catLabel).trim()) {
+        categorySet.add(String(catLabel).trim().toLowerCase());
+      }
+    }
 
     // Only completed transcripts with valid metadata contribute to NLP metrics
     if (t.metadata && status === 'completed') {
@@ -138,15 +154,25 @@ export const computeLibraryMetrics = (transcripts = []) => {
     }
   });
 
+  const completionPercentage = total > 0 ? Math.round((processed / total) * 100) : 0;
+
   return {
     total,
+    totalCount: total,
     processed,
+    completedCount: processed,
     processing,
+    processingCount: processing,
     failed,
+    failedCount: failed,
+    completionPercentage,
     totalWords,
     totalSegments,
     totalEntities,
-    distinctSpeakers: distinctSpeakerSet.size
+    totalEntitiesCount: totalEntities,
+    distinctSpeakers: distinctSpeakerSet.size,
+    totalSpeakersCount: distinctSpeakerSet.size,
+    uniqueCategoriesCount: categorySet.size
   };
 };
 

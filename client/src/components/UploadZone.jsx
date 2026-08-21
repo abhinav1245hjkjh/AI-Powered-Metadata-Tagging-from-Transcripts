@@ -182,50 +182,50 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
   const pastedLinesCount = pastedText.split(/\r\n|\r|\n/).length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-left">
       {/* Compact Preset Quick-Load Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-[#F9FAFB] border border-[#E4E7EC]">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-[#475467]">
-          <Sparkles className="w-4 h-4 text-[#3157D5]" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#DCE5F2]">
+        <div className="flex items-center gap-2 text-xs font-extrabold text-[#0F172A]">
+          <Sparkles className="w-4 h-4 text-[#2563EB]" />
           <span>Demo Presets:</span>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => handleLoadSample('matrix')}
-            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-[#F9FAFB] text-xs font-semibold text-[#344054] hover:text-[#101828] border border-[#D0D5DD] transition-colors flex items-center gap-1.5 cursor-pointer shadow-saas"
+            className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EFF6FF] text-xs font-bold text-[#334155] hover:text-[#2563EB] border border-[#DCE5F2] hover:border-[#BFDBFE] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
-            <FileText className="w-3.5 h-3.5 text-[#3157D5]" />
+            <FileText className="w-3.5 h-3.5 text-[#2563EB]" />
             <span>Matrix Scene</span>
           </button>
           <button
             type="button"
             onClick={() => handleLoadSample('goodwill')}
-            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-[#F9FAFB] text-xs font-semibold text-[#344054] hover:text-[#101828] border border-[#D0D5DD] transition-colors flex items-center gap-1.5 cursor-pointer shadow-saas"
+            className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EFF6FF] text-xs font-bold text-[#334155] hover:text-[#2563EB] border border-[#DCE5F2] hover:border-[#BFDBFE] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
-            <FileText className="w-3.5 h-3.5 text-[#3157D5]" />
+            <FileText className="w-3.5 h-3.5 text-[#2563EB]" />
             <span>Good Will Hunting</span>
           </button>
           <button
             type="button"
             onClick={() => handleLoadSample('interview')}
-            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-[#F9FAFB] text-xs font-semibold text-[#344054] hover:text-[#101828] border border-[#D0D5DD] transition-colors flex items-center gap-1.5 cursor-pointer shadow-saas"
+            className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EFF6FF] text-xs font-bold text-[#334155] hover:text-[#2563EB] border border-[#DCE5F2] hover:border-[#BFDBFE] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
-            <FileText className="w-3.5 h-3.5 text-[#3157D5]" />
+            <FileText className="w-3.5 h-3.5 text-[#2563EB]" />
             <span>Tech Interview</span>
           </button>
         </div>
       </div>
 
       {/* Segmented Control Switcher */}
-      <div className="flex border-b border-[#E4E7EC]">
+      <div className="flex border-b border-[#DCE5F2]">
         <button
           type="button"
           onClick={() => setActiveTab('upload')}
           className={`px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'upload'
-              ? 'border-[#3157D5] text-[#3157D5]'
-              : 'border-transparent text-[#475467] hover:text-[#101828]'
+              ? 'border-[#2563EB] text-[#2563EB]'
+              : 'border-transparent text-[#64748B] hover:text-[#0F172A]'
           }`}
         >
           <UploadCloud className="w-4 h-4" />
@@ -236,8 +236,8 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
           onClick={() => setActiveTab('paste')}
           className={`px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'paste'
-              ? 'border-[#3157D5] text-[#3157D5]'
-              : 'border-transparent text-[#475467] hover:text-[#101828]'
+              ? 'border-[#2563EB] text-[#2563EB]'
+              : 'border-transparent text-[#64748B] hover:text-[#0F172A]'
           }`}
         >
           <Code2 className="w-4 h-4" />
@@ -248,15 +248,15 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Title Input */}
         <div>
-          <label className="block text-xs font-bold text-[#475467] mb-1.5">
-            Transcript Title <span className="text-[#667085] font-normal">(Optional)</span>
+          <label className="block text-xs font-bold text-[#334155] mb-1.5">
+            Transcript Title <span className="text-[#64748B] font-normal">(Optional)</span>
           </label>
           <input
             type="text"
             value={customTitle}
             onChange={(e) => setCustomTitle(e.target.value)}
             placeholder="e.g. Q3 Executive Strategy Review or Good Will Hunting Dialogue"
-            className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-[#D0D5DD] text-[#101828] placeholder-[#667085] text-xs sm:text-sm focus:outline-none focus:border-[#3157D5] focus:ring-1 focus:ring-[#3157D5] transition-all"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#DCE5F2] hover:border-[#94A3B8] text-[#0F172A] placeholder-[#94A3B8] text-xs sm:text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
           />
         </div>
 
@@ -264,48 +264,48 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
           <div>
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-xl p-7 text-center cursor-pointer transition-all ${
+              className={`border-2 border-dashed rounded-2xl p-7 text-center cursor-pointer transition-all ${
                 isDragActive
-                  ? 'border-[#3157D5] bg-[#EEF3FF]/50'
+                  ? 'border-[#2563EB] bg-[#EFF6FF]/60'
                   : selectedFile
-                  ? 'border-[#067647] bg-[#ECFDF3]/40'
-                  : 'border-[#D0D5DD] hover:border-[#3157D5] bg-[#F9FAFB] hover:bg-[#EEF3FF]/20'
+                  ? 'border-[#16A34A] bg-[#DCFCE7]/40'
+                  : 'border-[#DCE5F2] hover:border-[#2563EB] bg-[#F8FAFC] hover:bg-[#EFF6FF]/30'
               }`}
             >
               <input {...getInputProps()} />
-              <div className="w-10 h-10 mx-auto mb-3 rounded-lg bg-white border border-[#E4E7EC] text-[#3157D5] flex items-center justify-center shadow-saas">
+              <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-white border border-[#DCE5F2] text-[#2563EB] flex items-center justify-center shadow-sm">
                 <UploadCloud className="w-5 h-5" />
               </div>
 
               {selectedFile ? (
                 <div className="space-y-1.5">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-[#E4E7EC] shadow-saas">
-                    <Check className="w-4 h-4 text-[#067647]" />
-                    <span className="text-xs font-bold text-[#101828]">{selectedFile.name}</span>
-                    <span className="text-[11px] text-[#475467] font-mono">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#DCE5F2] shadow-sm">
+                    <Check className="w-4 h-4 text-[#16A34A]" />
+                    <span className="text-xs font-bold text-[#0F172A]">{selectedFile.name}</span>
+                    <span className="text-[11px] text-[#64748B] font-mono">
                       ({(selectedFile.size / 1024).toFixed(1)} KB)
                     </span>
                     <button
                       type="button"
                       onClick={handleClearFile}
-                      className="ml-1 p-0.5 text-[#667085] hover:text-[#B42318] transition-colors cursor-pointer"
+                      className="ml-1 p-0.5 text-[#94A3B8] hover:text-[#DC2626] transition-colors cursor-pointer"
                       title="Remove file"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <p className="text-xs text-[#344054]">
+                  <p className="text-xs text-[#64748B]">
                     Click or drag another file to replace
                   </p>
                 </div>
               ) : (
                 <div className="space-y-1">
-                  <p className="text-xs sm:text-sm font-bold text-[#101828]">
+                  <p className="text-xs sm:text-sm font-bold text-[#0F172A]">
                     {isDragActive ? 'Drop file to upload' : 'Drag & drop transcript file here, or click to browse'}
                   </p>
-                  <p className="text-xs text-[#344054]">
-                    Supports <span className="font-mono text-[#101828] font-bold">.txt</span> and{' '}
-                    <span className="font-mono text-[#101828] font-bold">.json</span> files up to 5 MB
+                  <p className="text-xs text-[#64748B]">
+                    Supports <span className="font-mono text-[#0F172A] font-bold">.txt</span> and{' '}
+                    <span className="font-mono text-[#0F172A] font-bold">.json</span> files up to 5 MB
                   </p>
                 </div>
               )}
@@ -313,17 +313,17 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
           </div>
         ) : (
           <div>
-            <label className="block text-xs font-bold text-[#475467] mb-1.5">
-              Raw Transcript Text <span className="text-[#B42318]">*</span>
+            <label className="block text-xs font-bold text-[#334155] mb-1.5">
+              Raw Transcript Text <span className="text-[#DC2626]">*</span>
             </label>
             <textarea
               rows={8}
               value={pastedText}
               onChange={(e) => setPastedText(e.target.value)}
               placeholder="Paste dialogue with speaker labels (e.g. TRINITY: ...) or scene headings (e.g. INT. SCENE - DAY)..."
-              className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-[#D0D5DD] text-[#101828] placeholder-[#667085] text-xs font-mono focus:outline-none focus:border-[#3157D5] focus:ring-1 focus:ring-[#3157D5] transition-all leading-relaxed"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#DCE5F2] hover:border-[#94A3B8] text-[#0F172A] placeholder-[#94A3B8] text-xs font-mono focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all leading-relaxed"
             />
-            <div className="flex justify-between text-xs text-[#475467] mt-1 font-mono font-bold">
+            <div className="flex justify-between text-xs text-[#64748B] mt-1 font-mono font-bold">
               <span>{pastedLinesCount} lines</span>
               <span>{pastedText.length} characters</span>
             </div>
@@ -333,7 +333,7 @@ const UploadZone = ({ onUploadSubmit, isSubmitting = false }) => {
         <button
           type="submit"
           disabled={isSubmitting || (activeTab === 'upload' && !selectedFile) || (activeTab === 'paste' && !pastedText.trim())}
-          className="w-full h-11 px-4 rounded-lg bg-[#3157D5] hover:bg-[#2446B8] disabled:bg-[#E4E7EC] disabled:text-[#667085] disabled:cursor-not-allowed text-white font-semibold text-xs sm:text-sm transition-all shadow-saas flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full h-11 sm:h-12 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] disabled:bg-[#CBD5E1] disabled:text-[#94A3B8] disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
         >
           {isSubmitting ? (
             <>

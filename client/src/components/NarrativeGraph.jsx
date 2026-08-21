@@ -9,7 +9,8 @@ import {
   Building2,
   ExternalLink,
   Compass,
-  Network
+  Network,
+  CheckCircle2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -18,8 +19,9 @@ const CATEGORY_STYLES = {
     color: '#1D4ED8',      // Deep Blue
     border: '#1D4ED8',
     bg: '#EFF6FF',
-    text: '#111827',
+    text: '#1E3A8A',
     badgeBg: 'bg-[#EFF6FF] text-[#1D4ED8] border-[#93C5FD]',
+    accentBorder: 'border-l-[#1D4ED8]',
     icon: Compass,
     label: 'Central Theme'
   },
@@ -29,15 +31,17 @@ const CATEGORY_STYLES = {
     bg: '#EFF6FF',
     text: '#1E3A8A',
     badgeBg: 'bg-[#EFF6FF] text-[#1E3A8A] border-[#93C5FD]',
+    accentBorder: 'border-l-[#2563EB]',
     icon: Tag,
     label: 'Topic'
   },
   SPEAKER: {
     color: '#7C3AED',      // Professional Purple
-    border: '#7C3AED',
+    border: '#A78BFA',
     bg: '#F5F3FF',
     text: '#4C1D95',
     badgeBg: 'bg-[#F5F3FF] text-[#4C1D95] border-[#DDD6FE]',
+    accentBorder: 'border-l-[#7C3AED]',
     icon: Mic,
     label: 'Speaker'
   },
@@ -47,6 +51,7 @@ const CATEGORY_STYLES = {
     bg: '#F0FDF4',
     text: '#166534',
     badgeBg: 'bg-[#F0FDF4] text-[#166534] border-[#BBF7D0]',
+    accentBorder: 'border-l-[#15803D]',
     icon: Building2,
     label: 'Named Entity'
   }
@@ -83,7 +88,7 @@ const NarrativeGraph = ({
     if (nodes.length === 0) return;
     const initial = {};
     nodes.forEach((n) => {
-      initial[n.id] = { x: n.x || 400, y: n.y || 260 };
+      initial[n.id] = { x: n.x || 400, y: n.y || 250 };
     });
     setPositions(initial);
     if (!selectedNodeId && centralNode) {
@@ -104,8 +109,8 @@ const NarrativeGraph = ({
       const rawX = (e.clientX - rect.left - pan.x) / zoom;
       const rawY = (e.clientY - rect.top - pan.y) / zoom;
 
-      const clampedX = Math.max(50, Math.min(750, rawX));
-      const clampedY = Math.max(50, Math.min(480, rawY));
+      const clampedX = Math.max(60, Math.min(740, rawX));
+      const clampedY = Math.max(45, Math.min(455, rawY));
 
       setPositions((prev) => ({
         ...prev,
@@ -149,7 +154,7 @@ const NarrativeGraph = ({
     if (nodes.length > 0) {
       const initial = {};
       nodes.forEach((n) => {
-        initial[n.id] = { x: n.x || 400, y: n.y || 260 };
+        initial[n.id] = { x: n.x || 400, y: n.y || 250 };
       });
       setPositions(initial);
     }
@@ -166,6 +171,15 @@ const NarrativeGraph = ({
       return matchesType && matchesSearch;
     });
   }, [nodes, selectedTypeFilter, searchTerm]);
+
+  // Sort nodes so selected node renders last (on top of other elements)
+  const sortedNodesForRender = useMemo(() => {
+    return [...filteredNodes].sort((a, b) => {
+      if (a.id === selectedNodeId) return 1;
+      if (b.id === selectedNodeId) return -1;
+      return 0;
+    });
+  }, [filteredNodes, selectedNodeId]);
 
   const visibleNodeIdSet = useMemo(() => {
     return new Set(filteredNodes.map((n) => n.id));
@@ -325,12 +339,12 @@ const NarrativeGraph = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onWheel={handleWheel}
-          className="lg:col-span-8 xl:col-span-8 saas-card relative h-[540px] overflow-hidden bg-white border border-[#E4E7EC] shadow-saas select-none cursor-grab active:cursor-grabbing"
+          className="lg:col-span-8 xl:col-span-8 saas-card relative h-[520px] overflow-hidden bg-white border border-[#E4E7EC] shadow-saas select-none cursor-grab active:cursor-grabbing"
         >
           <svg
             ref={svgRef}
             className="w-full h-full"
-            viewBox="0 0 800 520"
+            viewBox="0 0 800 500"
             preserveAspectRatio="xMidYMid meet"
           >
             <defs>
@@ -338,6 +352,12 @@ const NarrativeGraph = ({
               <pattern id="light-grid" width="40" height="40" patternUnits="userSpaceOnUse">
                 <circle cx="20" cy="20" r="1.5" fill="#E5E7EB" />
               </pattern>
+
+              {/* Pulsing Glow Animation Filter for Active Selection */}
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
             </defs>
 
             {/* Background Grid */}
@@ -346,9 +366,9 @@ const NarrativeGraph = ({
             {/* Transformable Canvas Group */}
             <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
               
-              {/* Concentric Guide Rings */}
-              <circle cx="400" cy="260" r="155" fill="none" stroke="#EEF2F6" strokeWidth="1.5" strokeDasharray="5 5" />
-              <circle cx="400" cy="260" r="255" fill="none" stroke="#E5E7EB" strokeWidth="1.5" strokeDasharray="6 6" />
+              {/* Concentric Guide Orbits matching exact radial nodes */}
+              <ellipse cx="400" cy="250" rx="175" ry="135" fill="none" stroke="#E2E8F0" strokeWidth="1.5" strokeDasharray="5 5" />
+              <ellipse cx="400" cy="250" rx="295" ry="210" fill="none" stroke="#CBD5E1" strokeWidth="1.5" strokeDasharray="6 6" />
 
               {/* Relationship Links (Edges) */}
               {filteredEdges.map((edge) => {
@@ -373,8 +393,8 @@ const NarrativeGraph = ({
                     : '#2563EB'
                   : '#CBD5E1';
 
-                const edgeWidth = isConnectedToActive ? 2.5 : Math.max(1.5, edge.strength * 2);
-                const edgeOpacity = isConnectedToActive ? 1 : 0.85;
+                const edgeWidth = isConnectedToActive ? 3.0 : Math.max(1.5, edge.strength * 2);
+                const edgeOpacity = isConnectedToActive ? 1 : 0.75;
 
                 // Midpoint for score badge
                 const midX = (sourcePos.x + targetPos.x) / 2;
@@ -403,14 +423,14 @@ const NarrativeGraph = ({
                           rx="4"
                           fill="#FFFFFF"
                           stroke={edgeStroke}
-                          strokeWidth="1"
+                          strokeWidth="1.5"
                         />
                         <text
-                          y="3"
+                          y="3.5"
                           textAnchor="middle"
                           fill={edgeStroke}
                           fontSize="9"
-                          fontWeight="700"
+                          fontWeight="800"
                           fontFamily="Inter, monospace"
                           className="select-none pointer-events-none"
                         >
@@ -422,20 +442,22 @@ const NarrativeGraph = ({
                 );
               })}
 
-              {/* Interactive Graph Nodes */}
-              {filteredNodes.map((node) => {
-                const pos = positions[node.id] || { x: node.x || 400, y: node.y || 260 };
+              {/* Interactive Graph Nodes (Sorted so selected node renders on top) */}
+              {sortedNodesForRender.map((node) => {
+                const pos = positions[node.id] || { x: node.x || 400, y: node.y || 250 };
                 const isSelected = selectedNodeId === node.id;
-                const isHovered = hoveredNodeId === node.id;
                 const isCentral = node.type === 'CENTRAL';
 
                 const style = CATEGORY_STYLES[node.type] || CATEGORY_STYLES.ENTITY;
-                const radius = isCentral ? 36 : isSelected ? 24 : 20;
+                const radius = isCentral ? 34 : isSelected ? 24 : 20;
 
-                // Subtle non-destructive opacity logic (NEVER below 0.85)
                 const isFocusActive = Boolean(activeFocusId);
                 const isNodeConnected = connectedNodeIdSet.has(node.id);
                 const nodeOpacity = isFocusActive ? (isNodeConnected ? 1 : 0.85) : 1;
+
+                // Smart Label Truncation (Max 14 chars on node text)
+                const truncatedLabel =
+                  node.label.length > 16 ? `${node.label.slice(0, 14)}…` : node.label;
 
                 return (
                   <g
@@ -451,27 +473,38 @@ const NarrativeGraph = ({
                     }}
                     className="cursor-pointer group transition-opacity duration-200"
                   >
-                    {/* Outer Focus Ring if Selected */}
+                    {/* Outer Focus Glow Ring if Selected */}
                     {isSelected && (
-                      <circle
-                        r={radius + 6}
-                        fill="none"
-                        stroke={style.color}
-                        strokeWidth="2"
-                        strokeDasharray="4 4"
-                      />
+                      <g>
+                        <circle
+                          r={radius + 8}
+                          fill="none"
+                          stroke={style.color}
+                          strokeWidth="2.5"
+                          strokeDasharray="4 4"
+                          filter="url(#glow)"
+                          className="animate-pulse"
+                        />
+                        <circle
+                          r={radius + 4}
+                          fill="none"
+                          stroke={style.color}
+                          strokeWidth="1.5"
+                          opacity="0.6"
+                        />
+                      </g>
                     )}
 
-                    {/* Node Main Circle with Explicit Solid Semantic Background Fill */}
+                    {/* Node Main Circle with Solid Background Fill */}
                     <circle
                       r={radius}
                       fill={style.bg}
                       stroke={isSelected ? style.color : style.border}
                       strokeWidth={isSelected || isCentral ? 3.5 : 2.5}
-                      className="transition-all duration-200"
+                      className="transition-all duration-200 shadow-sm"
                     />
 
-                    {/* Node Core Icon or Colored Inner Dot */}
+                    {/* Node Core Icon or Inner Dot */}
                     {isCentral ? (
                       <g className="pointer-events-none select-none">
                         <circle r="10" fill="#1D4ED8" />
@@ -494,31 +527,71 @@ const NarrativeGraph = ({
                       />
                     )}
 
-                    {/* Primary Label with Full Contrast Semantic Typography */}
+                    {/* Active Selected Badge Tag */}
+                    {isSelected && (
+                      <g transform={`translate(0, ${-(radius + 24)})`} className="pointer-events-none select-none">
+                        <rect
+                          x="-26"
+                          y="-8"
+                          width="52"
+                          height="15"
+                          rx="4"
+                          fill={style.color}
+                        />
+                        <text
+                          y="3.5"
+                          textAnchor="middle"
+                          fill="#FFFFFF"
+                          fontSize="8"
+                          fontWeight="800"
+                          fontFamily="Inter, sans-serif"
+                          letterSpacing="0.5"
+                        >
+                          SELECTED
+                        </text>
+                      </g>
+                    )}
+
+                    {/* Primary Label with Solid White Outline Paint-Order Halo Shield */}
                     <text
-                      y={-(radius + 8)}
+                      y={isSelected ? -(radius + 8) : -(radius + 7)}
                       textAnchor="middle"
-                      fill={style.text}
-                      fontSize={isCentral ? 13 : 12}
-                      fontWeight={700}
+                      fill={isSelected ? style.color : style.text}
+                      stroke="#FFFFFF"
+                      strokeWidth="5"
+                      paintOrder="stroke fill"
+                      strokeLinejoin="round"
+                      fontSize={isCentral ? 13 : 11}
+                      fontWeight={isSelected || isCentral ? 800 : 700}
                       fontFamily="Inter, sans-serif"
                       className="pointer-events-none select-none"
                     >
-                      {node.label.length > 22 ? `${node.label.slice(0, 20)}…` : node.label}
+                      {truncatedLabel}
                     </text>
 
-                    {/* Node Relevance Score / Subtitle Badge */}
-                    <text
-                      y={radius + 20}
-                      textAnchor="middle"
-                      fill="#667085"
-                      fontSize={isCentral ? 10 : 9}
-                      fontWeight={600}
-                      fontFamily="Inter, monospace"
-                      className="pointer-events-none select-none font-mono"
-                    >
-                      {node.relevance}
-                    </text>
+                    {/* Node Relevance Score Pill Badge */}
+                    <g transform={`translate(0, ${radius + 14})`} className="pointer-events-none select-none">
+                      <rect
+                        x="-16"
+                        y="-8"
+                        width="32"
+                        height="14"
+                        rx="4"
+                        fill="#FFFFFF"
+                        stroke="#E4E7EC"
+                        strokeWidth="1"
+                      />
+                      <text
+                        y="2.5"
+                        textAnchor="middle"
+                        fill="#475467"
+                        fontSize="9"
+                        fontWeight="700"
+                        fontFamily="Inter, monospace"
+                      >
+                        {node.relevance}
+                      </text>
+                    </g>
                   </g>
                 );
               })}
@@ -570,15 +643,26 @@ const NarrativeGraph = ({
           </div>
         </div>
 
-        {/* 3. Right-Side Theme Details Panel */}
+        {/* 3. Right-Side Theme Details Panel (Linked to Selected Graph Node) */}
         {selectedNode && (
-          <div className="lg:col-span-4 xl:col-span-4 saas-card p-5 space-y-4 bg-white border border-[#E4E7EC] shadow-saas">
+          <div className={`lg:col-span-4 xl:col-span-4 saas-card p-5 space-y-4 bg-white border border-[#E4E7EC] shadow-saas border-l-4 transition-all duration-200 ${CATEGORY_STYLES[selectedNode.type]?.accentBorder || 'border-l-[#2563EB]'}`}>
+            
+            {/* Active Selection Connection Banner */}
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#1E293B]">
+                <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-[#2563EB] -ml-4" />
+                <span>Viewing Selected Node in Graph</span>
+              </div>
+              <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />
+            </div>
+
             <div className="flex items-start justify-between border-b border-[#EAECF0] pb-3">
               <div>
                 <span className="text-[10px] uppercase font-bold text-[#475467] tracking-wider">
                   Theme Details
                 </span>
-                <h3 className="text-base font-bold text-[#111827] mt-0.5">
+                <h3 className="text-base font-bold text-[#111827] mt-0.5 break-words">
                   {selectedNode.label}
                 </h3>
               </div>
@@ -586,7 +670,7 @@ const NarrativeGraph = ({
               {(() => {
                 const style = CATEGORY_STYLES[selectedNode.type] || CATEGORY_STYLES.ENTITY;
                 return (
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${style.badgeBg}`}>
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border flex-shrink-0 ${style.badgeBg}`}>
                     {selectedNode.sublabel || selectedNode.type}
                   </span>
                 );

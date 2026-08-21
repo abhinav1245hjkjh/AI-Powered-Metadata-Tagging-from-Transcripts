@@ -282,37 +282,39 @@ export const buildIntelligenceGraph = (transcript) => {
   });
 
   // Compute Deterministic Radial Positions for 100% Collision-Free Layout
-  // Width: 800, Height: 540, Center: (400, 270)
+  // Width: 800, Height: 520, Center: (400, 250)
   const cx = 400;
-  const cy = 260;
+  const cy = 250;
 
   // Level 0: Central Node
   centralNode.x = cx;
   centralNode.y = cy;
 
   // Level 1: Inner Orbit (Core Subthemes / Topics)
-  const r1 = 155; // Radius of 1st ring
+  const rx1 = 175;
+  const ry1 = 135;
   const numRing1 = topicNodeIds.length;
   topicNodeIds.forEach((id, idx) => {
     const node = nodeMap.get(id);
     if (!node) return;
     const angle = (idx / Math.max(1, numRing1)) * 2 * Math.PI - Math.PI / 2;
-    node.x = cx + Math.cos(angle) * r1;
-    node.y = cy + Math.sin(angle) * (r1 * 0.85); // slight elliptical squash for natural wide viewport
+    node.x = cx + Math.cos(angle) * rx1;
+    node.y = cy + Math.sin(angle) * ry1;
   });
 
   // Level 2: Outer Orbit (Speakers & Entities)
-  const r2 = 255; // Radius of 2nd ring
+  const rx2 = 295;
+  const ry2 = 210;
   const ring2Ids = [...speakerNodeIds, ...entityNodeIds];
   const numRing2 = ring2Ids.length;
-  const angleOffset = numRing1 > 0 ? (Math.PI / numRing1) * 0.5 : 0; // offset so outer nodes sit between inner nodes
+  const angleOffset = numRing1 > 0 ? (Math.PI / numRing1) * 0.5 : 0;
 
   ring2Ids.forEach((id, idx) => {
     const node = nodeMap.get(id);
     if (!node) return;
     const angle = (idx / Math.max(1, numRing2)) * 2 * Math.PI - Math.PI / 2 + angleOffset;
-    node.x = cx + Math.cos(angle) * r2;
-    node.y = cy + Math.sin(angle) * (r2 * 0.85);
+    node.x = cx + Math.cos(angle) * rx2;
+    node.y = cy + Math.sin(angle) * ry2;
   });
 
   // Statistics

@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import FilterBar from '../components/FilterBar';
 import DataTable from '../components/DataTable';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { CardSkeleton } from '../components/SkeletonLoader';
 import { computeLibraryMetrics } from '../utils/metadataMetrics';
 import {
@@ -14,8 +15,6 @@ import {
   Layers,
   Sparkles,
   Users,
-  Plus,
-  RefreshCw,
   ArrowRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -23,6 +22,10 @@ import toast from 'react-hot-toast';
 const Dashboard = () => {
   const [transcripts, setTranscripts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Delete modal state
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Search & Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,35 +38,31 @@ const Dashboard = () => {
     try {
       if (!isPolling) setLoading(true);
       const params = {};
-      if (searchTerm.trim()) params.q = searchTerm.trim();
       if (statusFilter) params.status = statusFilter;
       if (categoryFilter) params.category = categoryFilter;
-      if (sentimentFilter) params.sentiment = sentimentFilter;
 
       const res = await api.get('/transcripts', { params });
-      setTranscripts(res.data.transcripts || []);
+      setTranscripts(res.data?.data?.transcripts || res.data?.transcripts || []);
     } catch (err) {
-      if (!isPolling) {
-        toast.error('Failed to load transcripts.');
-      }
+      console.error('Failed to fetch transcripts:', err);
+      if (!isPolling) toast.error('Failed to load dashboard metrics.');
     } finally {
       if (!isPolling) setLoading(false);
     }
-  }, [searchTerm, statusFilter, categoryFilter, sentimentFilter]);
+  }, [statusFilter, categoryFilter]);
 
-  // Initial fetch
   useEffect(() => {
     fetchTranscripts();
   }, [fetchTranscripts]);
 
-  // Auto-polling for active background processing jobs
+  // Polling for processing/queued status updates
   useEffect(() => {
-    const hasActiveJobs = transcripts.some(
-      (t) => t.status === 'queued' || t.status === 'processing'
+    const hasPending = transcripts.some(
+      (t) => t.status === 'processing' || t.status === 'queued'
     );
 
-    let intervalId = null;
-    if (hasActiveJobs) {
+    let intervalId;
+    if (hasPending) {
       intervalId = setInterval(() => {
         fetchTranscripts(true);
       }, 4000);
@@ -74,15 +73,24 @@ const Dashboard = () => {
     };
   }, [transcripts, fetchTranscripts]);
 
-  const handleDelete = async (id, title) => {
-    if (!window.confirm(`Delete transcript "${title}"?`)) return;
+  const handleDeleteClick = (id, title) => {
+    setDeleteTarget({ id, title });
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setIsDeleting(true);
     try {
-      await api.delete(`/transcripts/${id}`);
-      toast.success('Transcript deleted.');
-      setTranscripts((prev) => prev.filter((t) => t._id !== id));
+      await api.delete(`/transcripts/${deleteTarget.id}`);
+      toast.success('Transcript deleted successfully.');
+      setTranscripts((prev) => prev.filter((t) => t._id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
-      toast.error('Failed to delete transcript.');
+      console.error('Delete transcript error:', err);
+      toast.error(err.response?.data?.message || 'Unable to delete transcript. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -109,142 +117,132 @@ const Dashboard = () => {
     return computeLibraryMetrics(transcripts);
   }, [transcripts]);
 
-  // Client-side Sorting
-  const sortedTranscripts = useMemo(() => {
-    const list = [...transcripts];
-    if (sortBy === 'oldest') {
-      return list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    }
-    if (sortBy === 'title_asc') {
-      return list.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-    }
-    if (sortBy === 'words_desc') {
-      const getWordCount = (item) => {
-        const raw = typeof item.rawText === 'string' ? item.rawText.trim() : '';
-        return raw ? raw.split(/\s+/).filter(Boolean).length : 0;
-      };
-      return list.sort((a, b) => getWordCount(b) - getWordCount(a));
-    }
-    return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [transcripts, sortBy]);
+  // Client-side Sorting & Filtering
+  const filteredTranscripts = useMemo(() => {
+    let result = [...transcripts];
 
-  const hasActiveFilters = Boolean(searchTerm || statusFilter || categoryFilter || sentimentFilter);
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.title?.toLowerCase().includes(q) ||
+          t.fileName?.toLowerCase().includes(q) ||
+          t.rawText?.toLowerCase().includes(q) ||
+          t.metadata?.topics?.some((topic) => topic.name?.toLowerCase().includes(q))
+      );
+    }
+
+    if (sentimentFilter) {
+      result = result.filter((t) => t.metadata?.sentiment === sentimentFilter);
+    }
+
+    if (sortBy === 'oldest') {
+      result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    } else if (sortBy === 'title_asc') {
+      result.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    } else if (sortBy === 'words_desc') {
+      result.sort((a, b) => (b.wordCount || 0) - (a.wordCount || 0));
+    } else {
+      result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    return result;
+  }, [transcripts, searchTerm, sentimentFilter, sortBy]);
+
+  const hasActiveFilters = Boolean(
+    searchTerm || statusFilter || categoryFilter || sentimentFilter || sortBy !== 'newest'
+  );
 
   return (
     <AppShell>
-      {/* Page Header */}
-      <PageHeader
-        title="Metadata Intelligence Overview"
-        subtitle="Real-time transcript metadata and structured intelligence across your transcript library."
-        actions={
-          <>
-            <button
-              onClick={() => fetchTranscripts()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-[#F9FAFB] text-[#344054] hover:text-[#101828] border border-[#D0D5DD] text-xs sm:text-sm font-semibold transition-colors shadow-saas cursor-pointer"
-              title="Refresh transcripts"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-[#475467]" />
-              <span>Refresh</span>
-            </button>
-            <Link
-              to="/upload"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#3157D5] hover:bg-[#2446B8] text-white text-xs sm:text-sm font-semibold shadow-saas transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Upload Transcript</span>
-            </Link>
-          </>
-        }
-      />
+      <div className="space-y-6">
+        {/* Page Header */}
+        <PageHeader
+          title="Dashboard"
+          subtitle="Real-time transcript processing summary and NLP metadata extraction metrics"
+        />
 
-      {/* 5 Real Aggregate KPI Cards with Equal Dimensions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {/* 4 Primary KPI Summary Cards */}
         {loading ? (
-          <>
-            <CardSkeleton />
-            <CardSkeleton />
-            <CardSkeleton />
-            <CardSkeleton />
-            <CardSkeleton />
-          </>
+          <CardSkeleton count={4} />
         ) : (
-          <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               icon={FileText}
               label="Total Transcripts"
               value={kpiMetrics.total}
-              description="Across your library"
+              description={`${kpiMetrics.processed} completed, ${kpiMetrics.processing} in progress`}
             />
             <StatCard
               icon={CheckCircle2}
-              label="Processed Transcripts"
+              label="Completed Analysis"
               value={kpiMetrics.processed}
-              description="Ready for search & export"
+              description={`${kpiMetrics.completionPercentage}% processing success rate`}
             />
             <StatCard
               icon={Layers}
-              label="Total Segments"
-              value={kpiMetrics.totalSegments}
-              description="Scene & dialogue blocks"
-            />
-            <StatCard
-              icon={Sparkles}
-              label="Named Entities"
+              label="Entities Extracted"
               value={kpiMetrics.totalEntities}
-              description="Extracted mentions"
+              description={`Across ${kpiMetrics.uniqueCategoriesCount} domain categories`}
             />
             <StatCard
               icon={Users}
               label="Speakers Identified"
               value={kpiMetrics.distinctSpeakers}
-              description="Distinct interlocutors"
+              description="Diarized conversational participants"
             />
-          </>
-        )}
-      </div>
-
-      {/* Filter and Search Bar */}
-      <FilterBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        categoryFilter={categoryFilter}
-        onCategoryChange={setCategoryFilter}
-        sentimentFilter={sentimentFilter}
-        onSentimentChange={setSentimentFilter}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-        onReset={handleResetFilters}
-      />
-
-      {/* Recent Transcripts Section */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="font-bold text-sm sm:text-base text-[#101828]">
-              Recent Transcripts
-            </h2>
-            <span className="text-xs text-[#475467] font-mono tabular-nums font-bold">
-              ({sortedTranscripts.length})
-            </span>
           </div>
-          <Link
-            to="/transcripts"
-            className="text-xs sm:text-sm text-[#3157D5] hover:text-[#2446B8] font-bold inline-flex items-center gap-1 transition-colors"
-          >
-            <span>View Full Library</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+        )}
+
+        {/* Search & Filter Toolbar */}
+        <FilterBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          categoryFilter={categoryFilter}
+          onCategoryChange={setCategoryFilter}
+          sentimentFilter={sentimentFilter}
+          onSentimentChange={setSentimentFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          onReset={handleResetFilters}
+        />
+
+        {/* Recent Transcripts Table */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-[#0F172A]">Recent Transcripts</h2>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE]">
+                {filteredTranscripts.length}
+              </span>
+            </div>
+            <Link
+              to="/transcripts"
+              className="text-xs font-bold text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <span>View All Transcripts</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <DataTable
+            transcripts={filteredTranscripts}
+            loading={loading}
+            onRetry={handleRetry}
+            onDelete={handleDeleteClick}
+            hasActiveFilters={hasActiveFilters}
+          />
         </div>
 
-        <DataTable
-          transcripts={sortedTranscripts}
-          loading={loading}
-          onRetry={handleRetry}
-          onDelete={handleDelete}
-          hasActiveFilters={hasActiveFilters}
-          emptyActionLink="/upload"
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmationModal
+          isOpen={Boolean(deleteTarget)}
+          transcriptTitle={deleteTarget?.title || ''}
+          isDeleting={isDeleting}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteTarget(null)}
         />
       </div>
     </AppShell>
