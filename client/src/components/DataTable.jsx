@@ -21,11 +21,11 @@ const DataTable = ({
 }) => {
   if (loading) {
     return (
-      <div className="saas-card overflow-hidden bg-white border border-[#E4E7EC] shadow-saas">
+      <div className="saas-card overflow-hidden bg-white border border-[#DCE5F2] shadow-saas rounded-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#F9FAFB] border-b border-[#EAECF0] text-xs font-bold text-[#475467]">
+              <tr className="bg-[#F8FAFC] border-b border-[#DCE5F2] text-xs font-bold text-[#64748B]">
                 <th className="py-3 px-4">Transcript Title</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Category</th>
@@ -45,7 +45,7 @@ const DataTable = ({
 
   if (transcripts.length === 0) {
     return (
-      <div className="saas-card p-8 bg-white border border-[#E4E7EC] shadow-saas">
+      <div className="saas-card p-8 bg-white border border-[#DCE5F2] shadow-saas rounded-2xl">
         <EmptyState
           title={hasActiveFilters ? 'No Matching Transcripts' : 'No Transcripts in Library'}
           description={
@@ -61,11 +61,11 @@ const DataTable = ({
   }
 
   return (
-    <div className="saas-card overflow-hidden bg-white border border-[#E4E7EC] shadow-saas">
+    <div className="saas-card overflow-hidden bg-white border border-[#DCE5F2] shadow-saas rounded-2xl">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-[#F9FAFB] border-b border-[#EAECF0] text-xs font-bold text-[#475467]">
+            <tr className="bg-[#F8FAFC] border-b border-[#DCE5F2] text-xs font-bold text-[#64748B]">
               <th className="py-3 px-4">Transcript Title</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Category</th>
@@ -74,7 +74,7 @@ const DataTable = ({
               <th className="py-3 px-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#EAECF0]">
+          <tbody className="divide-y divide-[#E2E8F0]">
             {transcripts.map((t) => {
               const meta = t.metadata || {};
               const isFailed = t.status === 'failed';
@@ -82,20 +82,20 @@ const DataTable = ({
               return (
                 <tr
                   key={t._id}
-                  className="hover:bg-[#F9FAFB] transition-colors group text-sm"
+                  className="hover:bg-[#F4F8FF] transition-colors group text-sm"
                 >
                   {/* Title & Filename Column */}
                   <td className="py-3.5 px-4 max-w-[280px]">
                     <div className="space-y-0.5">
                       <Link
                         to={`/transcripts/${t._id}`}
-                        className="font-bold text-[#101828] hover:text-[#3157D5] transition-colors line-clamp-1 block"
+                        className="font-bold text-[#0F172A] hover:text-[#2563EB] transition-colors line-clamp-1 block"
                         title={t.title}
                       >
                         {t.title}
                       </Link>
                       {t.fileName && (
-                        <div className="text-xs text-[#475467] truncate max-w-[240px]" title={t.fileName}>
+                        <div className="text-xs text-[#64748B] truncate max-w-[240px]" title={t.fileName}>
                           {t.fileName}
                         </div>
                       )}
@@ -112,7 +112,7 @@ const DataTable = ({
                     {meta.category ? (
                       <CategoryBadge category={meta.category} size="xs" showConfidence={true} />
                     ) : (
-                      <span className="text-xs text-[#667085] italic">—</span>
+                      <span className="text-xs text-[#94A3B8] italic">—</span>
                     )}
                   </td>
 
@@ -121,12 +121,12 @@ const DataTable = ({
                     {meta.sentiment ? (
                       <SentimentBadge sentiment={meta.sentiment} size="xs" />
                     ) : (
-                      <span className="text-xs text-[#667085] italic">—</span>
+                      <span className="text-xs text-[#94A3B8] italic">—</span>
                     )}
                   </td>
 
                   {/* Date Column */}
-                  <td className="py-3.5 px-4 whitespace-nowrap text-xs text-[#344054] font-mono">
+                  <td className="py-3.5 px-4 whitespace-nowrap text-xs text-[#64748B] font-mono">
                     {new Date(t.createdAt).toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',
@@ -141,7 +141,7 @@ const DataTable = ({
                         <button
                           type="button"
                           onClick={() => onRetry(t._id)}
-                          className="p-1.5 rounded-lg text-[#B54708] hover:bg-[#FFFAEB] border border-[#FEDF89] transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-[#D97706] hover:bg-[#FEF3C7] border border-[#FDE68A] transition-colors cursor-pointer"
                           title="Retry analysis"
                         >
                           <RotateCw className="w-3.5 h-3.5" />
@@ -150,7 +150,7 @@ const DataTable = ({
 
                       <Link
                         to={`/transcripts/${t._id}`}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-[#3157D5] bg-[#EEF3FF] hover:bg-[#E0EAFF] border border-[#C7D7FE] transition-colors shadow-saas"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-[#2563EB] bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] transition-colors shadow-sm"
                       >
                         <span>Inspect</span>
                         <ArrowRight className="w-3 h-3" />
@@ -159,8 +159,11 @@ const DataTable = ({
                       {onDelete && (
                         <button
                           type="button"
-                          onClick={() => onDelete(t._id, t.title)}
-                          className="p-1.5 rounded-lg text-[#667085] hover:text-[#B42318] hover:bg-[#FEF3F2] transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(t._id, t.title);
+                          }}
+                          className="p-1.5 rounded-lg text-[#94A3B8] hover:text-[#DC2626] hover:bg-[#FEF2F2] transition-colors cursor-pointer"
                           title="Delete transcript"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

@@ -4,39 +4,39 @@
 
 @layer base {
   :root {
-    --page-bg: #F6F7F9;
+    --page-bg: #F4F7FC;
     --surface-bg: #FFFFFF;
-    --surface-subtle: #F9FAFB;
-    --border-primary: #E4E7EC;
-    --border-secondary: #D0D5DD;
-    --border-subtle: #EAECF0;
-    --text-primary: #111827;
-    --text-secondary: #344054;
-    --text-muted: #667085;
+    --surface-subtle: #F8FAFC;
+    --border-primary: #DCE5F2;
+    --border-secondary: #CBD5E1;
+    --border-subtle: #E2E8F0;
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --text-muted: #94A3B8;
     --text-label: #475467;
-    --brand-primary: #3157D5;
-    --brand-hover: #2446B8;
-    --brand-light: #EEF3FF;
+    --brand-primary: #2563EB;
+    --brand-hover: #1D4ED8;
+    --brand-light: #EFF6FF;
 
     /* Global Semantic Category & Graph Color System */
     --color-primary: #2563EB;
     --color-primary-dark: #1D4ED8;
     --color-topic: #2563EB;
     --color-topic-bg: #EFF6FF;
-    --color-topic-border: #60A5FA;
+    --color-topic-border: #BFDBFE;
     --color-topic-text: #1E3A8A;
     --color-speaker: #7C3AED;
     --color-speaker-bg: #F5F3FF;
-    --color-speaker-border: #7C3AED;
+    --color-speaker-border: #DDD6FE;
     --color-speaker-text: #4C1D95;
-    --color-entity: #15803D;
+    --color-entity: #16A34A;
     --color-entity-bg: #F0FDF4;
-    --color-entity-border: #4ADE80;
-    --color-entity-text: #166534;
-    --color-text-primary: #111827;
-    --color-text-secondary: #475467;
-    --color-text-muted: #667085;
-    --color-border: #D0D5DD;
+    --color-entity-border: #BBF7D0;
+    --color-entity-text: #15803D;
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #64748B;
+    --color-text-muted: #94A3B8;
+    --color-border: #DCE5F2;
     --color-background: #FFFFFF;
   }
 
@@ -56,19 +56,19 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #F6F7F9;
+    background: #F4F7FC;
   }
   ::-webkit-scrollbar-thumb {
-    background: #D0D5DD;
+    background: #CBD5E1;
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #98A2B3;
+    background: #94A3B8;
   }
 
   /* Accessible Focus Indicators */
   *:focus-visible {
-    outline: 2px solid #3157D5;
+    outline: 2px solid #2563EB;
     outline-offset: 2px;
   }
 }
@@ -77,9 +77,9 @@
   /* Standard Enterprise SaaS Card Container */
   .saas-card {
     background-color: #FFFFFF;
-    border: 1px solid #E4E7EC;
+    border: 1px solid #DCE5F2;
     border-radius: 12px;
-    box-shadow: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
   }
 
   .saas-card-hover {
@@ -87,8 +87,8 @@
   }
 
   .saas-card-hover:hover {
-    border-color: #D0D5DD;
-    box-shadow: 0 4px 12px 0 rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
+    border-color: #BFDBFE;
+    box-shadow: 0 4px 12px 0 rgba(37, 99, 235, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
   }
 
   /* Primary Button Utility */
@@ -103,20 +103,24 @@
     font-size: 0.875rem;
     font-weight: 600;
     color: #FFFFFF;
-    background-color: #3157D5;
+    background-color: #2563EB;
     border-radius: 8px;
     transition: background-color 0.15s ease, transform 0.05s ease;
     cursor: pointer;
-    box-shadow: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+    box-shadow: 0 1px 2px 0 rgba(37, 99, 235, 0.1);
   }
 
   .btn-primary:hover {
-    background-color: #2446B8;
+    background-color: #1D4ED8;
+  }
+
+  .btn-primary:active {
+    background-color: #1E40AF;
   }
 
   .btn-primary:disabled {
-    background-color: #E4E7EC;
-    color: #667085;
+    background-color: #CBD5E1;
+    color: #94A3B8;
     cursor: not-allowed;
   }
 
@@ -131,50 +135,50 @@
     padding-right: 0.875rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #344054;
+    color: #2563EB;
     background-color: #FFFFFF;
-    border: 1px solid #D0D5DD;
+    border: 1px solid #BFDBFE;
     border-radius: 8px;
     transition: background-color 0.15s ease, border-color 0.15s ease;
     cursor: pointer;
-    box-shadow: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
   }
 
   .btn-secondary:hover {
-    background-color: #F9FAFB;
-    border-color: #98A2B3;
-    color: #101828;
+    background-color: #EFF6FF;
+    border-color: #2563EB;
+    color: #1D4ED8;
   }
 
   /* High Density Professional Table */
   .saas-table th {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #475467;
-    background-color: #F9FAFB;
-    border-bottom: 1px solid #EAECF0;
+    color: #64748B;
+    background-color: #F8FAFC;
+    border-bottom: 1px solid #DCE5F2;
     padding: 0.75rem 1rem;
     text-align: left;
   }
 
   .saas-table td {
     padding: 0.875rem 1rem;
-    border-bottom: 1px solid #EAECF0;
+    border-bottom: 1px solid #E2E8F0;
     font-size: 0.875rem;
-    color: #101828;
+    color: #0F172A;
   }
 
   .saas-table tr:hover td {
-    background-color: #F9FAFB;
+    background-color: #F4F8FF;
   }
 
   /* Skeleton Shimmer Loading */
   .skeleton-shimmer {
     background: linear-gradient(
       90deg,
-      #F2F4F7 0%,
-      #E4E7EC 50%,
-      #F2F4F7 100%
+      #F1F5F9 0%,
+      #E2E8F0 50%,
+      #F1F5F9 100%
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite ease-in-out;
