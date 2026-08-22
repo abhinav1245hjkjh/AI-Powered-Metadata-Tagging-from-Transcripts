@@ -1,3 +1,4 @@
+import os
 import logging
 import re
 import importlib
@@ -22,7 +23,16 @@ CANDIDATE_LABELS = [
     "podcast"
 ]
 
+
+def is_low_memory_mode() -> bool:
+    val = os.environ.get("LOW_MEMORY_MODE", "true").strip().lower()
+    return val in {"true", "1", "yes", "on"}
+
+
 def get_classifier_pipeline():
+    if is_low_memory_mode():
+        return False
+
     global _classifier_pipeline
     if _classifier_pipeline is not None:
         if _classifier_pipeline is not False:

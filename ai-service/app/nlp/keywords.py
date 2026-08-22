@@ -1,3 +1,4 @@
+import os
 import logging
 import importlib
 import re
@@ -8,6 +9,11 @@ logger = logging.getLogger(__name__)
 
 _kw_model = None
 _kw_lock = threading.Lock()
+
+
+def is_low_memory_mode() -> bool:
+    val = os.environ.get("LOW_MEMORY_MODE", "true").strip().lower()
+    return val in {"true", "1", "yes", "on"}
 
 # Comprehensive conversational stop words, verbal fillers, and fragment indicators
 CONVERSATIONAL_STOPWORDS = {
@@ -47,9 +53,11 @@ CONVERSATIONAL_FRAGMENT_PATTERNS = [
 def get_keybert_model():
     """
     Singleton thread-safe loader for KeyBERT with all-MiniLM-L6-v2 embeddings.
-    Explicitly loads SentenceTransformer first then initializes KeyBERT once per process.
-    Reuses the cached model on subsequent requests.
+    If LOW_MEMORY_MODE is active, heavy PyTorch/KeyBERT model is skipped.
     """
+    if is_low_memory_mode():
+        return False
+
     global _kw_model
     if _kw_model is not None:
         if _kw_model is not False:
@@ -220,7 +228,7 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
             stop_words=stop_list,
             ngram_range=(1, 3),
             min_df=1,
-            max_df=0.9,
+            max_df=1.0,
             max_features=top_n * 5
         )
 
