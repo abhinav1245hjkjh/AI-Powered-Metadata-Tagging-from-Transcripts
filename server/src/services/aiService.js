@@ -73,6 +73,8 @@ const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
       errorMessage = 'AI NLP Microservice is unavailable or offline. Please ensure Python FastAPI service is running on port 8000.';
     } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
       errorMessage = 'AI processing timed out after 180 seconds.';
+    } else if (error.response && [502, 503, 504].includes(error.response.status)) {
+      errorMessage = 'AI Microservice is starting up or temporarily low on memory. Please retry in a few seconds.';
     } else if (error.response && error.response.data && error.response.data.detail) {
       errorMessage = `AI Processing Error: ${error.response.data.detail}`;
     } else if (error.message) {
