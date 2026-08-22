@@ -24,31 +24,35 @@ CANDIDATE_LABELS = [
 
 def get_classifier_pipeline():
     global _classifier_pipeline
-    if _classifier_pipeline is None:
-        with _classifier_lock:
-            if _classifier_pipeline is None:
-                try:
-                    logger.info("[MODEL] Loading Zero-shot classification pipeline (facebook/bart-large-mnli)...")
-                    transformers_mod = importlib.import_module("transformers")
-                    pipeline = getattr(transformers_mod, "pipeline")
-                    
-                    device = -1
-                    try:
-                        torch_mod = importlib.import_module("torch")
-                        if torch_mod.cuda.is_available():
-                            device = 0
-                    except Exception:
-                        device = -1
+    if _classifier_pipeline is not None:
+        if _classifier_pipeline is not False:
+            logger.info("[MODEL] Reusing cached Zero-shot classification model")
+        return _classifier_pipeline
 
-                    _classifier_pipeline = pipeline(
-                        "zero-shot-classification",
-                        model="facebook/bart-large-mnli",
-                        device=device
-                    )
-                    logger.info("[MODEL] Loaded Zero-shot classification pipeline successfully.")
-                except Exception as e:
-                    logger.warning(f"[MODEL] Failed Zero-shot classification model: {e}. Heuristic classifier active.")
-                    _classifier_pipeline = False
+    with _classifier_lock:
+        if _classifier_pipeline is None:
+            try:
+                logger.info("[MODEL] Loading Zero-shot classification pipeline (facebook/bart-large-mnli)...")
+                transformers_mod = importlib.import_module("transformers")
+                pipeline = getattr(transformers_mod, "pipeline")
+                
+                device = -1
+                try:
+                    torch_mod = importlib.import_module("torch")
+                    if torch_mod.cuda.is_available():
+                        device = 0
+                except Exception:
+                    device = -1
+
+                _classifier_pipeline = pipeline(
+                    "zero-shot-classification",
+                    model="facebook/bart-large-mnli",
+                    device=device
+                )
+                logger.info("[MODEL] Loaded Zero-shot classification pipeline successfully.")
+            except Exception as e:
+                logger.warning(f"[MODEL] Failed Zero-shot classification model: {e}. Heuristic classifier active.")
+                _classifier_pipeline = False
     return _classifier_pipeline
 
 
