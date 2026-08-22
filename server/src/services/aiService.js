@@ -23,7 +23,7 @@ const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
 
     console.log(`[aiService] Dispatching transcript ${transcriptId} to AI Microservice (${AI_SERVICE_URL}/analyze)...`);
 
-    // 2. Call Python FastAPI AI Service with a 60s timeout
+    // 2. Call Python FastAPI AI Service with a 180s timeout
     const response = await axios.post(
       `${AI_SERVICE_URL}/analyze`,
       {
@@ -32,7 +32,7 @@ const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
       },
       {
         headers: { 'Content-Type': 'application/json' },
-        timeout: 60000 // 60 seconds
+        timeout: 180000 // 180 seconds (3 minutes)
       }
     );
 
@@ -72,7 +72,7 @@ const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       errorMessage = 'AI NLP Microservice is unavailable or offline. Please ensure Python FastAPI service is running on port 8000.';
     } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      errorMessage = 'AI processing timed out after 60 seconds.';
+      errorMessage = 'AI processing timed out after 180 seconds.';
     } else if (error.response && error.response.data && error.response.data.detail) {
       errorMessage = `AI Processing Error: ${error.response.data.detail}`;
     } else if (error.message) {

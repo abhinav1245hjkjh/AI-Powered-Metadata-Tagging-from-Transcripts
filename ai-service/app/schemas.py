@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class AnalyzeRequest(BaseModel):
@@ -46,8 +46,12 @@ class HandoffItem(BaseModel):
     heading: Optional[str] = ""
     context: Optional[str] = ""
 
-    class Config:
-        allow_population_by_field_name = True
+    try:
+        model_config = ConfigDict(populate_by_name=True, validate_by_name=True)
+    except (NameError, ImportError):
+        class Config:
+            validate_by_name = True
+            allow_population_by_field_name = True
 
 
 class CategoryResult(BaseModel):

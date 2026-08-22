@@ -57,7 +57,7 @@ def segment_transcript(text: str) -> List[Dict[str, Any]]:
 
     # Check 1: Movie script scene headings: INT., EXT., INT/EXT, SCENE 1
     scene_heading_regex = re.compile(
-        r'^\s*(INT\.|EXT\.|INT/EXT\.|INT\s*/\s*EXT\.|SCENE\s+\d+|PROLOGUE|EPILOGUE)\b.*$',
+        r'^\s*(INT\.|EXT\.|INT/EXT\.|INT\s*/\s*EXT\.|SCENE\s+\d+|PROLOGUE|EPILOGUE)(?:\s+.*)?$',
         re.IGNORECASE
     )
 
