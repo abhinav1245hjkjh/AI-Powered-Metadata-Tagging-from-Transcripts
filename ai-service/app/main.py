@@ -24,10 +24,19 @@ logging.basicConfig(
 logger = logging.getLogger("MetaMindAI")
 
 
+def is_low_memory_mode() -> bool:
+    val = os.environ.get("LOW_MEMORY_MODE", "true").strip().lower()
+    return val in {"true", "1", "yes", "on"}
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("MetaMind AI NLP Microservice online and listening for requests.")
-    logger.info("Heavy NLP models (KeyBERT, Transformers) will be lazy-loaded on demand per process.")
+    mode = "low_memory" if is_low_memory_mode() else "standard"
+    logger.info(f"MetaMind AI NLP Microservice online in [{mode}] mode.")
+    if is_low_memory_mode():
+        logger.info("[MODEL] Low-memory mode active: using fast lightweight NLP engines (TF-IDF, VADER, spaCy/rules, 12-emotion lexicon, 10-domain keyword classifier).")
+    else:
+        logger.info("[MODEL] Standard mode active: heavy NLP models will be lazy-loaded on demand.")
     try:
         get_vader_analyzer()
     except Exception as e:
@@ -57,9 +66,11 @@ app.add_middleware(
 
 @app.get("/", tags=["Health"])
 async def root():
+    mode = "low_memory" if is_low_memory_mode() else "standard"
     return {
         "service": "MetaMind AI NLP Service",
         "status": "online",
+        "mode": mode,
         "version": "1.0.0",
         "docs": "/docs"
     }
@@ -67,7 +78,11 @@ async def root():
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    return {"status": "healthy"}
+    mode = "low_memory" if is_low_memory_mode() else "standard"
+    return {
+        "status": "healthy",
+        "mode": mode
+    }
 
 
 @app.post(
