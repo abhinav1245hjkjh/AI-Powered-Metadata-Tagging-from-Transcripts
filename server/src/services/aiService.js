@@ -7,6 +7,8 @@ if (!rawAiUrl.startsWith('http://') && !rawAiUrl.startsWith('https://')) {
 }
 const AI_SERVICE_URL = rawAiUrl;
 
+console.log(`[ANALYSIS] AI_SERVICE_URL configured as: ${AI_SERVICE_URL}`);
+
 /**
  * Sends transcript text to the Python FastAPI NLP microservice and updates MongoDB document.
  * @param {string} transcriptId - The MongoDB document ID
@@ -16,12 +18,13 @@ const AI_SERVICE_URL = rawAiUrl;
 const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
   try {
     // 1. Transition state to 'processing'
+    console.log(`[ANALYSIS] MongoDB status update - Transcript ${transcriptId} -> processing`);
     await Transcript.findByIdAndUpdate(transcriptId, {
       status: 'processing',
       error: null
     });
 
-    console.log(`[aiService] Dispatching transcript ${transcriptId} to AI Microservice (${AI_SERVICE_URL}/analyze)...`);
+    console.log(`[ANALYSIS] Node -> AI service - Dispatching POST ${AI_SERVICE_URL}/analyze for transcript ${transcriptId}`);
 
     // 2. Call Python FastAPI AI Service with a 180s timeout
     const response = await axios.post(
@@ -46,7 +49,10 @@ const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
     const words = (rawText || '').trim().split(/[\s\r\n\t]+/).filter(Boolean);
     const wordCount = metadata.wordCount || words.length;
 
+    console.log(`[ANALYSIS] AI service response - Received HTTP ${response.status} for transcript ${transcriptId} (domain: ${domain})`);
+
     // 3. Persist extracted metadata and root-level fields, mark as completed
+    console.log(`[ANALYSIS] MongoDB status update - Transcript ${transcriptId} -> completed`);
     const updated = await Transcript.findByIdAndUpdate(
       transcriptId,
       {
@@ -60,9 +66,6 @@ const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
       },
       { new: true }
     );
-
-
-    console.log(`[aiService] Transcript ${transcriptId} successfully processed, guardrails verified, and saved (domain: ${domain}).`);
 
     return updated;
 
@@ -81,9 +84,10 @@ const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
       errorMessage = `Processing failure: ${error.message}`;
     }
 
-    console.error(`[aiService] Error processing transcript ${transcriptId}:`, errorMessage);
+    console.error(`[ANALYSIS] AI service response ERROR - Transcript ${transcriptId}:`, errorMessage);
 
     // 4. Update status to failed with exact safe error description
+    console.log(`[ANALYSIS] MongoDB status update - Transcript ${transcriptId} -> failed (${errorMessage})`);
     await Transcript.findByIdAndUpdate(transcriptId, {
       status: 'failed',
       error: errorMessage
