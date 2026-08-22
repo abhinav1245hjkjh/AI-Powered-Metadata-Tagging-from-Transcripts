@@ -26,34 +26,12 @@ logger = logging.getLogger("MetaMindAI")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("MetaMind AI NLP Microservice initializing and pre-warming NLP models...")
+    logger.info("MetaMind AI NLP Microservice online and listening for requests.")
+    logger.info("Heavy NLP models (KeyBERT, Transformers) will be lazy-loaded on demand per process.")
     try:
         get_vader_analyzer()
     except Exception as e:
         logger.warning(f"VADER startup notice: {e}")
-
-    try:
-        get_spacy_model()
-    except Exception as e:
-        logger.warning(f"spaCy startup notice: {e}")
-
-    try:
-        get_keybert_model()
-    except Exception as e:
-        logger.warning(f"KeyBERT / SentenceTransformer startup notice: {e}")
-
-    try:
-        get_emotion_pipeline()
-    except Exception as e:
-        logger.warning(f"Emotion pipeline startup notice: {e}")
-
-    try:
-        get_classifier_pipeline()
-    except Exception as e:
-        logger.warning(f"Zero-shot classifier startup notice: {e}")
-
-    logger.info("[MODEL] All NLP models ready")
-    logger.info("MetaMind AI NLP Microservice online and listening for requests.")
     yield
     logger.info("Shutting down MetaMind AI NLP Microservice.")
 

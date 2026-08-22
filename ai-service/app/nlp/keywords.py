@@ -48,26 +48,31 @@ def get_keybert_model():
     """
     Singleton thread-safe loader for KeyBERT with all-MiniLM-L6-v2 embeddings.
     Explicitly loads SentenceTransformer first then initializes KeyBERT once per process.
+    Reuses the cached model on subsequent requests.
     """
     global _kw_model
-    if _kw_model is None:
-        with _kw_lock:
-            if _kw_model is None:
-                try:
-                    logger.info("[MODEL] Loading SentenceTransformer...")
-                    st_module = importlib.import_module("sentence_transformers")
-                    SentenceTransformer = getattr(st_module, "SentenceTransformer")
-                    st_model = SentenceTransformer("all-MiniLM-L6-v2")
-                    logger.info("[MODEL] SentenceTransformer loaded successfully")
+    if _kw_model is not None:
+        if _kw_model is not False:
+            logger.info("[MODEL] Reusing cached KeyBERT model")
+        return _kw_model
 
-                    logger.info("[MODEL] Loading KeyBERT...")
-                    keybert_module = importlib.import_module("keybert")
-                    KeyBERT = getattr(keybert_module, "KeyBERT")
-                    _kw_model = KeyBERT(model=st_model)
-                    logger.info("[MODEL] KeyBERT loaded successfully")
-                except Exception as e:
-                    logger.warning(f"[MODEL] Failed to initialize KeyBERT / SentenceTransformer: {e}. Semantic TF-IDF fallback will be active.")
-                    _kw_model = False
+    with _kw_lock:
+        if _kw_model is None:
+            try:
+                logger.info("[MODEL] Loading SentenceTransformer...")
+                st_module = importlib.import_module("sentence_transformers")
+                SentenceTransformer = getattr(st_module, "SentenceTransformer")
+                st_model = SentenceTransformer("all-MiniLM-L6-v2")
+                logger.info("[MODEL] SentenceTransformer loaded successfully")
+
+                logger.info("[MODEL] Loading KeyBERT...")
+                keybert_module = importlib.import_module("keybert")
+                KeyBERT = getattr(keybert_module, "KeyBERT")
+                _kw_model = KeyBERT(model=st_model)
+                logger.info("[MODEL] KeyBERT loaded successfully")
+            except Exception as e:
+                logger.warning(f"[MODEL] Failed to initialize KeyBERT / SentenceTransformer: {e}. Semantic TF-IDF fallback will be active.")
+                _kw_model = False
     return _kw_model
 
 

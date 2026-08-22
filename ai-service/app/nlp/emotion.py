@@ -78,34 +78,38 @@ EMOTION_LEXICONS = {
 
 def get_emotion_pipeline():
     global _emotion_pipeline
-    if _emotion_pipeline is None:
-        with _emotion_lock:
-            if _emotion_pipeline is None:
-                try:
-                    logger.info("[MODEL] Loading Emotion classification model (j-hartmann/emotion-english-distilroberta-base)...")
-                    transformers_mod = importlib.import_module("transformers")
-                    pipeline = getattr(transformers_mod, "pipeline")
-                    
-                    device = -1
-                    try:
-                        torch_mod = importlib.import_module("torch")
-                        if torch_mod.cuda.is_available():
-                            device = 0
-                    except Exception:
-                        device = -1
+    if _emotion_pipeline is not None:
+        if _emotion_pipeline is not False:
+            logger.info("[MODEL] Reusing cached Emotion model")
+        return _emotion_pipeline
 
-                    _emotion_pipeline = pipeline(
-                        "text-classification",
-                        model="j-hartmann/emotion-english-distilroberta-base",
-                        top_k=None,
-                        device=device,
-                        truncation=True,
-                        max_length=512
-                    )
-                    logger.info("[MODEL] Loaded Emotion model successfully.")
-                except Exception as e:
-                    logger.warning(f"[MODEL] Failed Emotion model: {e}. Fallback emotion heuristic will be active.")
-                    _emotion_pipeline = False
+    with _emotion_lock:
+        if _emotion_pipeline is None:
+            try:
+                logger.info("[MODEL] Loading Emotion classification model (j-hartmann/emotion-english-distilroberta-base)...")
+                transformers_mod = importlib.import_module("transformers")
+                pipeline = getattr(transformers_mod, "pipeline")
+                
+                device = -1
+                try:
+                    torch_mod = importlib.import_module("torch")
+                    if torch_mod.cuda.is_available():
+                        device = 0
+                except Exception:
+                    device = -1
+
+                _emotion_pipeline = pipeline(
+                    "text-classification",
+                    model="j-hartmann/emotion-english-distilroberta-base",
+                    top_k=None,
+                    device=device,
+                    truncation=True,
+                    max_length=512
+                )
+                logger.info("[MODEL] Loaded Emotion model successfully.")
+            except Exception as e:
+                logger.warning(f"[MODEL] Failed Emotion model: {e}. Fallback emotion heuristic will be active.")
+                _emotion_pipeline = False
     return _emotion_pipeline
 
 
