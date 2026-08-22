@@ -80,6 +80,7 @@ const createTranscript = async (req, res) => {
     }
 
     // Create transcript record in MongoDB
+    console.log(`[ANALYSIS] frontend request received - POST /api/transcripts (title: "${title}", fileName: "${fileName}", length: ${rawText.length} chars)`);
     const transcript = await Transcript.create({
       title,
       rawText: rawText.trim(),
@@ -178,6 +179,8 @@ const getTranscriptById = async (req, res) => {
         message: 'Unauthorized access to this transcript.'
       });
     }
+
+    console.log(`[ANALYSIS] frontend polling status - GET /api/transcripts/${req.params.id} -> status: "${transcript.status}"`);
 
     return res.status(200).json({
       success: true,
