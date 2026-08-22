@@ -70,7 +70,7 @@ def get_keybert_model():
                 KeyBERT = getattr(keybert_module, "KeyBERT")
                 _kw_model = KeyBERT(model=st_model)
                 logger.info("[MODEL] KeyBERT loaded successfully")
-            except Exception as e:
+            except (MemoryError, Exception) as e:
                 logger.warning(f"[MODEL] Failed to initialize KeyBERT / SentenceTransformer: {e}. Semantic TF-IDF fallback will be active.")
                 _kw_model = False
     return _kw_model

@@ -107,7 +107,7 @@ def get_emotion_pipeline():
                     max_length=512
                 )
                 logger.info("[MODEL] Loaded Emotion model successfully.")
-            except Exception as e:
+            except (MemoryError, Exception) as e:
                 logger.warning(f"[MODEL] Failed Emotion model: {e}. Fallback emotion heuristic will be active.")
                 _emotion_pipeline = False
     return _emotion_pipeline
