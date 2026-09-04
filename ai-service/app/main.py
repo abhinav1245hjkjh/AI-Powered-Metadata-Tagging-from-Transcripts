@@ -102,6 +102,10 @@ async def analyze_transcript(payload: AnalyzeRequest):
     - segments
     - category
     """
+    logger.info("[AI DEBUG] /analyze request received")
+    logger.info(f"[AI DEBUG] LOW_MEMORY_MODE={os.environ.get('LOW_MEMORY_MODE')}")
+    logger.info("[AI DEBUG] Analysis started")
+
     raw_text = payload.text
     filename = payload.filename or ""
 
@@ -113,58 +117,99 @@ async def analyze_transcript(payload: AnalyzeRequest):
 
     logger.info(f"Received analysis request for transcript (filename: '{filename}', length: {len(raw_text)} chars)")
 
+    # 1. Keywords Extraction
     try:
-        # 1. Keywords Extraction
         keywords = extract_keywords(raw_text)
+        logger.info(f"[FEATURE SUCCESS] Keywords: extracted {len(keywords)} terms")
+    except Exception as e:
+        logger.warning(f"[FEATURE FAILURE] Keywords extraction failed: {e}. Using guardrail fallback.")
+        keywords = []
 
-        # 2. Named Entities Recognition
+    # 2. Named Entities Recognition
+    try:
         entities = extract_entities(raw_text)
+        logger.info(f"[FEATURE SUCCESS] Entities: extracted {len(entities)} entities")
+    except Exception as e:
+        logger.warning(f"[FEATURE FAILURE] Entity extraction failed: {e}. Using guardrail fallback.")
+        entities = []
 
-        # 3. Sentiment Analysis
+    # 3. Sentiment Analysis
+    try:
         sentiment = analyze_sentiment(raw_text)
+        logger.info(f"[FEATURE SUCCESS] Sentiment: {sentiment.get('polarity')} (score: {sentiment.get('score')})")
+    except Exception as e:
+        logger.warning(f"[FEATURE FAILURE] Sentiment analysis failed: {e}. Using guardrail fallback.")
+        sentiment = {"polarity": "neutral", "score": 0.0}
 
-        # 4. Emotion Analysis
+    # 4. Emotion Analysis
+    try:
         emotions = analyze_emotions(raw_text)
+        logger.info(f"[FEATURE SUCCESS] Emotions: extracted {len(emotions)} emotion scores")
+    except Exception as e:
+        logger.warning(f"[FEATURE FAILURE] Emotion analysis failed: {e}. Using guardrail fallback.")
+        emotions = []
 
-        # 5. Speaker Identification & Canonical Word Counts
+    # 5. Speaker Identification
+    try:
         speakers = identify_speakers(raw_text)
+        logger.info(f"[FEATURE SUCCESS] Speakers: identified {len(speakers)} speakers")
+    except Exception as e:
+        logger.warning(f"[FEATURE FAILURE] Speaker identification failed: {e}. Using guardrail fallback.")
+        speakers = []
 
-        # 6. Scene & Dialogue Segmentation
+    # 6. Scene & Dialogue Segmentation
+    try:
         segments = segment_transcript(raw_text)
+        logger.info(f"[FEATURE SUCCESS] Segments: created {len(segments)} scene segments")
+    except Exception as e:
+        logger.warning(f"[FEATURE FAILURE] Scene segmentation failed: {e}. Using guardrail fallback.")
+        segments = []
 
-        # 7. Speaker Handoffs Extraction
+    # 7. Speaker Handoffs Extraction
+    try:
         handoffs = extract_speaker_handoffs(segments)
+        logger.info(f"[FEATURE SUCCESS] Handoffs: extracted {len(handoffs)} speaker handoffs")
+    except Exception as e:
+        logger.warning(f"[FEATURE FAILURE] Speaker handoff extraction failed: {e}. Using guardrail fallback.")
+        handoffs = []
 
-        # 8. Content Classification
+    # 8. Content Classification
+    try:
         category = classify_content(raw_text, filename=filename)
+        logger.info(f"[FEATURE SUCCESS] Classification: domain '{category.get('label')}' (confidence: {category.get('confidence')})")
+    except Exception as e:
+        logger.warning(f"[FEATURE FAILURE] Content classification failed: {e}. Using guardrail fallback.")
+        category = {"label": "General", "confidence": 0.85}
 
-        # Total Word Count via canonical tokenizer
+    # Total Word Count via canonical tokenizer
+    try:
         total_words = count_words(raw_text)
+    except Exception:
+        total_words = len(raw_text.split())
 
-        raw_response = {
-            "wordCount": total_words,
-            "keywords": keywords,
-            "entities": entities,
-            "sentiment": sentiment,
-            "emotions": emotions,
-            "speakers": speakers,
-            "segments": segments,
-            "handoffs": handoffs,
-            "category": category
-        }
+    raw_response = {
+        "wordCount": total_words,
+        "keywords": keywords,
+        "entities": entities,
+        "sentiment": sentiment,
+        "emotions": emotions,
+        "speakers": speakers,
+        "segments": segments,
+        "handoffs": handoffs,
+        "category": category
+    }
 
-        # 9. Pass through centralized guardrails validation & normalization layer
+    # 9. Pass through centralized guardrails validation & normalization layer
+    try:
         validated_response = validate_and_normalize_metadata(raw_response, filename=filename)
-
-
+        logger.info("[AI DEBUG] Analysis completed successfully")
         logger.info("Successfully completed transcript analysis and guardrail validation.")
         return validated_response
-
-    except Exception as e:
-        logger.error(f"Error during transcript analysis: {e}", exc_info=True)
+    except Exception as guardrail_err:
+        logger.error(f"[AI DEBUG] Guardrail normalization failed: {guardrail_err}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Metadata processing failed: {str(e)}"
+            detail=f"Metadata guardrail validation failed: {str(guardrail_err)}"
         )
 
 

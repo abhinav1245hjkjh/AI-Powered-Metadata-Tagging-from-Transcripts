@@ -49,6 +49,7 @@ const TranscriptDetail = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const [transcriptViewerSearch, setTranscriptViewerSearch] = useState('');
 
@@ -104,12 +105,16 @@ const TranscriptDetail = () => {
   };
 
   const handleRetry = async () => {
+    if (isRetrying) return;
+    setIsRetrying(true);
     try {
       await api.post(`/transcripts/${id}/retry`);
       toast.success('Transcript analysis re-queued.');
       fetchTranscript();
     } catch (err) {
       toast.error('Failed to retry transcript processing.');
+    } finally {
+      setIsRetrying(false);
     }
   };
 
@@ -195,11 +200,12 @@ const TranscriptDetail = () => {
           <button
             type="button"
             onClick={handleRetry}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#3157D5] hover:bg-[#2446B8] text-white text-xs sm:text-sm font-semibold shadow-saas transition-all cursor-pointer"
+            disabled={isRetrying}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#3157D5] hover:bg-[#2446B8] disabled:bg-[#94A3B8] disabled:cursor-not-allowed text-white text-xs sm:text-sm font-semibold shadow-saas transition-all cursor-pointer"
             title="Re-run Multi-Model NLP Pipeline"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-            <span>{isCompleted ? 'Re-Analyze Transcript' : 'Analyze Transcript'}</span>
+            <span>{isRetrying ? 'Re-Queueing...' : isCompleted ? 'Re-Analyze Transcript' : 'Analyze Transcript'}</span>
           </button>
 
           {isCompleted && (
