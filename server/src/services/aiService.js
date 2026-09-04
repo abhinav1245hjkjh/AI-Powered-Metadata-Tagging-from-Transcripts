@@ -2,7 +2,7 @@ const axios = require('axios');
 const Transcript = require('../models/Transcript');
 
 let rawAiUrl = (process.env.AI_SERVICE_URL || 'http://localhost:8000').trim().replace(/\/+$/, '');
-if (!rawAiUrl.startsWith('http://') && !rawAiUrl.startsWith('https://')) {
+if (rawAiUrl && !/^https?:\/\//i.test(rawAiUrl)) {
   rawAiUrl = `http://${rawAiUrl}`;
 }
 const AI_SERVICE_URL = rawAiUrl;
