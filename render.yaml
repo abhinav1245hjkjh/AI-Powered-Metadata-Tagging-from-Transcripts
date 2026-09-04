@@ -47,12 +47,9 @@ services:
         fromService:
           type: web
           name: metamind-ai-service
-          property: host
+          property: hostport
       - key: CLIENT_URL
-        fromService:
-          type: web
-          name: metamind-client
-          property: url
+        sync: false
 
   # -------------------------------------------------------------
   # 3. Frontend Client (React 18 + Vite Static Site)
@@ -71,7 +68,5 @@ services:
     autoDeployTrigger: commit
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: metamind-server
-          property: url
+        sync: false
+

@@ -58,6 +58,7 @@ const Upload = () => {
   }, [activeTranscript]);
 
   const handleUploadSubmit = async ({ isFile, payload }) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       let res;
