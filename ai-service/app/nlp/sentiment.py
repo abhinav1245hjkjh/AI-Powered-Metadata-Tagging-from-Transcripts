@@ -37,6 +37,16 @@ NEGATIONS = {"not", "never", "no", "without", "hardly", "scarcely", "barely", "c
 INTENSIFIERS = {"very": 1.5, "extremely": 2.0, "phenomenally": 2.0, "incredibly": 1.8, "exceptionally": 1.8, "highly": 1.5, "deeply": 1.5, "truly": 1.4, "super": 1.5}
 
 
+def is_rate_limit_error(e: Exception) -> bool:
+    if e is None:
+        return False
+    msg = str(e).lower()
+    if "429" in msg or "rate limit" in msg or "ratelimit" in msg or "too many requests" in msg:
+        return True
+    status_code = getattr(e, "status_code", None) or getattr(getattr(e, "response", None), "status_code", None)
+    return status_code == 429
+
+
 def get_vader_analyzer():
     global _vader_analyzer
     if _vader_analyzer is None:
@@ -52,16 +62,23 @@ def get_vader_analyzer():
                             logger.info("Downloading NLTK VADER lexicon...")
                             nltk.download("vader_lexicon", quiet=True)
                         except Exception as e:
-                            logger.warning(f"Could not download VADER lexicon: {e}")
+                            if is_rate_limit_error(e):
+                                logger.warning("[AI] External provider rate limited; using local fallback.")
+                            else:
+                                logger.warning(f"Could not download VADER lexicon: {e}")
                     
                     vader_mod = importlib.import_module("nltk.sentiment.vader")
                     SentimentIntensityAnalyzer = getattr(vader_mod, "SentimentIntensityAnalyzer")
                     _vader_analyzer = SentimentIntensityAnalyzer()
                     logger.info("[MODEL] Loaded VADER Sentiment Analyzer successfully.")
                 except Exception as e:
-                    logger.warning(f"[MODEL] Failed VADER Analyzer: {e}. Heuristic sentiment analyzer active.")
+                    if is_rate_limit_error(e):
+                        logger.warning("[AI] External provider rate limited; using local fallback.")
+                    else:
+                        logger.warning(f"[MODEL] Failed VADER Analyzer: {e}. Heuristic sentiment analyzer active.")
                     _vader_analyzer = False
     return _vader_analyzer
+
 
 
 def _extract_utterances(text: str) -> List[str]:
@@ -260,5 +277,8 @@ def analyze_sentiment(text: str) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        logger.error(f"Error during VADER sentiment analysis: {e}. Using fallback heuristic.")
+        if is_rate_limit_error(e):
+            logger.warning("[AI] External provider rate limited; using local fallback.")
+        else:
+            logger.error(f"Error during VADER sentiment analysis: {e}. Using fallback heuristic.")
         return _heuristic_sentiment(text)

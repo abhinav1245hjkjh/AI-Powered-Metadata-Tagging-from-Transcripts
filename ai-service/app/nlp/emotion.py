@@ -82,6 +82,16 @@ def is_low_memory_mode() -> bool:
     return val in {"true", "1", "yes", "on"}
 
 
+def is_rate_limit_error(e: Exception) -> bool:
+    if e is None:
+        return False
+    msg = str(e).lower()
+    if "429" in msg or "rate limit" in msg or "ratelimit" in msg or "too many requests" in msg:
+        return True
+    status_code = getattr(e, "status_code", None) or getattr(getattr(e, "response", None), "status_code", None)
+    return status_code == 429
+
+
 def get_emotion_pipeline():
     if is_low_memory_mode():
         return False
@@ -117,9 +127,13 @@ def get_emotion_pipeline():
                 )
                 logger.info("[MODEL] Loaded Emotion model successfully.")
             except (MemoryError, Exception) as e:
-                logger.warning(f"[MODEL] Failed Emotion model: {e}. Fallback emotion heuristic will be active.")
+                if is_rate_limit_error(e):
+                    logger.warning("[AI] External provider rate limited; using local fallback.")
+                else:
+                    logger.warning(f"[MODEL] Failed Emotion model: {e}. Fallback emotion heuristic will be active.")
                 _emotion_pipeline = False
     return _emotion_pipeline
+
 
 
 def _extract_lexicon_scores(text: str) -> Dict[str, float]:
@@ -222,7 +236,11 @@ def analyze_emotions(text: str) -> List[Dict[str, Any]]:
             return formatted
 
         except Exception as e:
-            logger.error(f"Error during transformer emotion inference: {e}. Using fallback heuristic.")
+            if is_rate_limit_error(e):
+                logger.warning("[AI] External provider rate limited; using local fallback.")
+            else:
+                logger.error(f"Error during transformer emotion inference: {e}. Using fallback heuristic.")
+
 
     # Fallback heuristic using 12-emotion lexicon
     total = sum(lex_scores.values()) or 1.0

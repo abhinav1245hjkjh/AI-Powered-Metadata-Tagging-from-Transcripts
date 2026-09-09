@@ -50,6 +50,16 @@ CONVERSATIONAL_FRAGMENT_PATTERNS = [
 ]
 
 
+def is_rate_limit_error(e: Exception) -> bool:
+    if e is None:
+        return False
+    msg = str(e).lower()
+    if "429" in msg or "rate limit" in msg or "ratelimit" in msg or "too many requests" in msg:
+        return True
+    status_code = getattr(e, "status_code", None) or getattr(getattr(e, "response", None), "status_code", None)
+    return status_code == 429
+
+
 def get_keybert_model():
     """
     Singleton thread-safe loader for KeyBERT with all-MiniLM-L6-v2 embeddings.
@@ -79,9 +89,13 @@ def get_keybert_model():
                 _kw_model = KeyBERT(model=st_model)
                 logger.info("[MODEL] KeyBERT loaded successfully")
             except (MemoryError, Exception) as e:
-                logger.warning(f"[MODEL] Failed to initialize KeyBERT / SentenceTransformer: {e}. Semantic TF-IDF fallback will be active.")
+                if is_rate_limit_error(e):
+                    logger.warning("[AI] External provider rate limited; using local fallback.")
+                else:
+                    logger.warning(f"[MODEL] Failed to initialize KeyBERT / SentenceTransformer: {e}. Semantic TF-IDF fallback will be active.")
                 _kw_model = False
     return _kw_model
+
 
 
 def validate_keyphrase(phrase: str) -> bool:
@@ -217,7 +231,11 @@ def extract_keywords(text: str, top_n: int = 10) -> List[str]:
                 return unique_phrases
 
         except Exception as e:
-            logger.warning(f"KeyBERT extraction failed, using TF-IDF n-gram fallback: {e}")
+            if is_rate_limit_error(e):
+                logger.warning("[AI] External provider rate limited; using local fallback.")
+            else:
+                logger.warning(f"KeyBERT extraction failed, using TF-IDF n-gram fallback: {e}")
+
 
     # Fallback to TF-IDF with Multi-Word N-Grams and Conversational Stopword Filtering
     try:

@@ -15,7 +15,7 @@ from app.nlp.emotion import analyze_emotions, get_emotion_pipeline
 from app.nlp.classify import classify_content, get_classifier_pipeline
 from app.nlp.speakers import identify_speakers, count_words, extract_speaker_handoffs
 from app.nlp.segmentation import segment_transcript
-from app.nlp.guardrails import validate_and_normalize_metadata
+from app.nlp.guardrails import validate_and_normalize_metadata, is_rate_limit_error
 
 logging.basicConfig(
     level=logging.INFO,
@@ -122,7 +122,10 @@ async def analyze_transcript(payload: AnalyzeRequest):
         keywords = extract_keywords(raw_text)
         logger.info(f"[FEATURE SUCCESS] Keywords: extracted {len(keywords)} terms")
     except Exception as e:
-        logger.warning(f"[FEATURE FAILURE] Keywords extraction failed: {e}. Using guardrail fallback.")
+        if is_rate_limit_error(e):
+            logger.warning("[AI] External provider rate limited; using local fallback.")
+        else:
+            logger.warning(f"[FEATURE FAILURE] Keywords extraction failed: {e}. Using guardrail fallback.")
         keywords = []
 
     # 2. Named Entities Recognition
@@ -130,7 +133,10 @@ async def analyze_transcript(payload: AnalyzeRequest):
         entities = extract_entities(raw_text)
         logger.info(f"[FEATURE SUCCESS] Entities: extracted {len(entities)} entities")
     except Exception as e:
-        logger.warning(f"[FEATURE FAILURE] Entity extraction failed: {e}. Using guardrail fallback.")
+        if is_rate_limit_error(e):
+            logger.warning("[AI] External provider rate limited; using local fallback.")
+        else:
+            logger.warning(f"[FEATURE FAILURE] Entity extraction failed: {e}. Using guardrail fallback.")
         entities = []
 
     # 3. Sentiment Analysis
@@ -138,7 +144,10 @@ async def analyze_transcript(payload: AnalyzeRequest):
         sentiment = analyze_sentiment(raw_text)
         logger.info(f"[FEATURE SUCCESS] Sentiment: {sentiment.get('polarity')} (score: {sentiment.get('score')})")
     except Exception as e:
-        logger.warning(f"[FEATURE FAILURE] Sentiment analysis failed: {e}. Using guardrail fallback.")
+        if is_rate_limit_error(e):
+            logger.warning("[AI] External provider rate limited; using local fallback.")
+        else:
+            logger.warning(f"[FEATURE FAILURE] Sentiment analysis failed: {e}. Using guardrail fallback.")
         sentiment = {"polarity": "neutral", "score": 0.0}
 
     # 4. Emotion Analysis
@@ -146,7 +155,10 @@ async def analyze_transcript(payload: AnalyzeRequest):
         emotions = analyze_emotions(raw_text)
         logger.info(f"[FEATURE SUCCESS] Emotions: extracted {len(emotions)} emotion scores")
     except Exception as e:
-        logger.warning(f"[FEATURE FAILURE] Emotion analysis failed: {e}. Using guardrail fallback.")
+        if is_rate_limit_error(e):
+            logger.warning("[AI] External provider rate limited; using local fallback.")
+        else:
+            logger.warning(f"[FEATURE FAILURE] Emotion analysis failed: {e}. Using guardrail fallback.")
         emotions = []
 
     # 5. Speaker Identification
@@ -154,7 +166,10 @@ async def analyze_transcript(payload: AnalyzeRequest):
         speakers = identify_speakers(raw_text)
         logger.info(f"[FEATURE SUCCESS] Speakers: identified {len(speakers)} speakers")
     except Exception as e:
-        logger.warning(f"[FEATURE FAILURE] Speaker identification failed: {e}. Using guardrail fallback.")
+        if is_rate_limit_error(e):
+            logger.warning("[AI] External provider rate limited; using local fallback.")
+        else:
+            logger.warning(f"[FEATURE FAILURE] Speaker identification failed: {e}. Using guardrail fallback.")
         speakers = []
 
     # 6. Scene & Dialogue Segmentation
@@ -162,7 +177,10 @@ async def analyze_transcript(payload: AnalyzeRequest):
         segments = segment_transcript(raw_text)
         logger.info(f"[FEATURE SUCCESS] Segments: created {len(segments)} scene segments")
     except Exception as e:
-        logger.warning(f"[FEATURE FAILURE] Scene segmentation failed: {e}. Using guardrail fallback.")
+        if is_rate_limit_error(e):
+            logger.warning("[AI] External provider rate limited; using local fallback.")
+        else:
+            logger.warning(f"[FEATURE FAILURE] Scene segmentation failed: {e}. Using guardrail fallback.")
         segments = []
 
     # 7. Speaker Handoffs Extraction
@@ -170,7 +188,10 @@ async def analyze_transcript(payload: AnalyzeRequest):
         handoffs = extract_speaker_handoffs(segments)
         logger.info(f"[FEATURE SUCCESS] Handoffs: extracted {len(handoffs)} speaker handoffs")
     except Exception as e:
-        logger.warning(f"[FEATURE FAILURE] Speaker handoff extraction failed: {e}. Using guardrail fallback.")
+        if is_rate_limit_error(e):
+            logger.warning("[AI] External provider rate limited; using local fallback.")
+        else:
+            logger.warning(f"[FEATURE FAILURE] Speaker handoff extraction failed: {e}. Using guardrail fallback.")
         handoffs = []
 
     # 8. Content Classification
@@ -178,8 +199,12 @@ async def analyze_transcript(payload: AnalyzeRequest):
         category = classify_content(raw_text, filename=filename)
         logger.info(f"[FEATURE SUCCESS] Classification: domain '{category.get('label')}' (confidence: {category.get('confidence')})")
     except Exception as e:
-        logger.warning(f"[FEATURE FAILURE] Content classification failed: {e}. Using guardrail fallback.")
+        if is_rate_limit_error(e):
+            logger.warning("[AI] External provider rate limited; using local fallback.")
+        else:
+            logger.warning(f"[FEATURE FAILURE] Content classification failed: {e}. Using guardrail fallback.")
         category = {"label": "General", "confidence": 0.85}
+
 
     # Total Word Count via canonical tokenizer
     try:
