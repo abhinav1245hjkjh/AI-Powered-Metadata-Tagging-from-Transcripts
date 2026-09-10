@@ -29,6 +29,16 @@ def is_low_memory_mode() -> bool:
     return val in {"true", "1", "yes", "on"}
 
 
+def is_rate_limit_error(e: Exception) -> bool:
+    if e is None:
+        return False
+    msg = str(e).lower()
+    if "429" in msg or "rate limit" in msg or "ratelimit" in msg or "too many requests" in msg:
+        return True
+    status_code = getattr(e, "status_code", None) or getattr(getattr(e, "response", None), "status_code", None)
+    return status_code == 429
+
+
 def get_classifier_pipeline():
     if is_low_memory_mode():
         return False
@@ -61,9 +71,13 @@ def get_classifier_pipeline():
                 )
                 logger.info("[MODEL] Loaded Zero-shot classification pipeline successfully.")
             except (MemoryError, Exception) as e:
-                logger.warning(f"[MODEL] Failed Zero-shot classification model: {e}. Heuristic classifier active.")
+                if is_rate_limit_error(e):
+                    logger.warning("[AI] External provider rate limited; using local fallback.")
+                else:
+                    logger.warning(f"[MODEL] Failed Zero-shot classification model: {e}. Heuristic classifier active.")
                 _classifier_pipeline = False
     return _classifier_pipeline
+
 
 
 def classify_content(text: str, filename: str = "") -> Dict[str, Any]:
@@ -112,7 +126,11 @@ def classify_content(text: str, filename: str = "") -> Dict[str, Any]:
                     "confidence": round(top_score, 4)
                 }
         except Exception as e:
-            logger.error(f"Transformer zero-shot classification error: {e}")
+            if is_rate_limit_error(e):
+                logger.warning("[AI] External provider rate limited; using local fallback.")
+            else:
+                logger.error(f"Transformer zero-shot classification error: {e}")
+
 
     # Fallback high-precision rule/keyword classifier
     combined_text = (filename + " " + text[:6000]).lower()

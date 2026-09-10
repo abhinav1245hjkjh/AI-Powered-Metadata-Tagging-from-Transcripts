@@ -21,6 +21,22 @@ def sanitize_float(val: Any, default: float = 0.0, min_val: float = -1.0, max_va
         return default
 
 
+def is_rate_limit_error(e: Any) -> bool:
+    """
+    Detects if an exception represents an HTTP 429 / RateLimitError from external APIs or models.
+    """
+    if e is None:
+        return False
+    msg = str(e).lower()
+    if "429" in msg or "rate limit" in msg or "ratelimit" in msg or "too many requests" in msg:
+        return True
+    status_code = getattr(e, "status_code", None) or getattr(getattr(e, "response", None), "status_code", None)
+    if status_code == 429:
+        return True
+    return False
+
+
+
 def validate_and_normalize_metadata(metadata: Dict[str, Any], filename: str = "") -> Dict[str, Any]:
     """
     Centralized validation & normalization guardrail before AI metadata is returned or saved.
@@ -99,9 +115,15 @@ def validate_and_normalize_metadata(metadata: Dict[str, Any], filename: str = ""
             if isinstance(spk, dict):
                 name = str(spk.get("speaker") or "").strip()
                 count = int(spk.get("lineCount") or 1)
+                w_count = int(spk.get("wordCount") or 0)
                 if name and name.lower() not in seen_spk:
                     seen_spk.add(name.lower())
-                    sanitized_speakers.append({"speaker": name, "lineCount": max(1, count)})
+                    sanitized_speakers.append({
+                        "speaker": name,
+                        "lineCount": max(1, count),
+                        "wordCount": max(0, w_count)
+                    })
+
     sanitized["speakers"] = sanitized_speakers
 
     # 6. SEGMENTS GUARDRAILS

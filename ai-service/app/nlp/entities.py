@@ -10,6 +10,16 @@ _nlp_spacy = None
 _spacy_lock = threading.Lock()
 
 
+def is_rate_limit_error(e: Exception) -> bool:
+    if e is None:
+        return False
+    msg = str(e).lower()
+    if "429" in msg or "rate limit" in msg or "ratelimit" in msg or "too many requests" in msg:
+        return True
+    status_code = getattr(e, "status_code", None) or getattr(getattr(e, "response", None), "status_code", None)
+    return status_code == 429
+
+
 def get_spacy_model():
     """
     Thread-safe loader for spaCy en_core_web_sm model.
@@ -45,10 +55,14 @@ def get_spacy_model():
                         logger.info("[MODEL] Downloaded and loaded en_core_web_sm.")
                         return _nlp_spacy
                     except Exception as e_dl:
-                        logger.warning(f"[MODEL] spaCy download failed: {e_dl}. Using rule-based NER fallback.")
+                        if is_rate_limit_error(e_dl):
+                            logger.warning("[AI] External provider rate limited; using local fallback.")
+                        else:
+                            logger.warning(f"[MODEL] spaCy download failed: {e_dl}. Using rule-based NER fallback.")
                         _nlp_spacy = False
 
     return _nlp_spacy
+
 
 
 # Indicator sets for canonical entity categorization and rule-based validation
@@ -352,7 +366,11 @@ def extract_entities(text: str) -> List[Dict[str, str]]:
                     "label": ent.label_
                 })
         except Exception as e:
-            logger.error(f"Error during spaCy entity extraction: {e}")
+            if is_rate_limit_error(e):
+                logger.warning("[AI] External provider rate limited; using local fallback.")
+            else:
+                logger.error(f"Error during spaCy entity extraction: {e}")
+
 
     # Fallback to rule-based NER if spaCy returns no entities
     if not raw_entities:
