@@ -33,6 +33,14 @@ const statusConfig = {
     border: 'border-[#FECDCA]',
     text: 'text-[#B42318]',
     icon: AlertCircle
+  },
+  temporarily_rate_limited: {
+    label: 'Rate Limited',
+    dot: 'bg-[#D97706] animate-pulse',
+    bg: 'bg-[#FEF3C7]',
+    border: 'border-[#FDE68A]',
+    text: 'text-[#D97706]',
+    icon: Clock
   }
 };
 

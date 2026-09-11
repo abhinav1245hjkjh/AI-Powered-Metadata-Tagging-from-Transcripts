@@ -11,6 +11,124 @@ console.log(`[ANALYSIS] AI_SERVICE_URL configured as: ${AI_SERVICE_URL}`);
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// In-memory set to track active analysis jobs to prevent duplicate processing
+const activeAnalyses = new Set();
+
+/**
+ * Checks if an analysis job is currently active in memory
+ */
+const isAnalysisActive = (transcriptId) => {
+  return activeAnalyses.has(String(transcriptId));
+};
+
+/**
+ * Classifies AI provider and network errors into deterministic failure categories.
+ */
+const classifyAiError = (error) => {
+  const status = error.response?.status;
+  const detail = error.response?.data?.detail || error.response?.data?.message || error.message || '';
+  const detailLower = String(detail).toLowerCase();
+
+  // Parse Retry-After header if provided
+  let retryAfterMs = null;
+  const retryHeader = error.response?.headers?.['retry-after'];
+  if (retryHeader) {
+    const parsed = parseInt(retryHeader, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      retryAfterMs = parsed * 1000;
+    }
+  }
+
+  // 1. Explicit Rate Limit (HTTP 429 or provider quota / rate limit text)
+  if (
+    status === 429 ||
+    detailLower.includes('rate limit') ||
+    detailLower.includes('ratelimit') ||
+    detailLower.includes('too many requests') ||
+    detailLower.includes('quota exceeded') ||
+    detailLower.includes('resource exhausted')
+  ) {
+    return {
+      isRateLimit: true,
+      isPermanent: false,
+      errorType: 'RATE_LIMIT',
+      message: 'The AI provider is currently rate limiting requests. Your transcript is safe. Please retry analysis in a moment.',
+      retryAfterMs
+    };
+  }
+
+  // 2. Invalid API Key / Auth (HTTP 401 / 403 or invalid key text)
+  if (
+    status === 401 ||
+    status === 403 ||
+    detailLower.includes('invalid api key') ||
+    detailLower.includes('unauthorized') ||
+    detailLower.includes('authentication') ||
+    detailLower.includes('invalid_api_key')
+  ) {
+    return {
+      isRateLimit: false,
+      isPermanent: true,
+      errorType: 'INVALID_API_KEY',
+      message: 'Invalid API Key or AI provider credentials configured. Please check server environment settings.',
+      retryAfterMs: null
+    };
+  }
+
+  // 3. Invalid Request (HTTP 400)
+  if (status === 400 || detailLower.includes('bad request') || detailLower.includes('invalid request')) {
+    return {
+      isRateLimit: false,
+      isPermanent: true,
+      errorType: 'INVALID_REQUEST',
+      message: `Invalid transcript analysis request: ${detail}`,
+      retryAfterMs: null
+    };
+  }
+
+  // 4. Connection refused / Microservice Offline
+  if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+    return {
+      isRateLimit: false,
+      isPermanent: false,
+      errorType: 'SERVICE_UNAVAILABLE',
+      message: 'AI NLP Microservice is unavailable or offline. Please ensure Python FastAPI service is running on port 8000.',
+      retryAfterMs: null
+    };
+  }
+
+  // 5. Timeout
+  if (error.code === 'ECONNABORTED' || detailLower.includes('timeout')) {
+    return {
+      isRateLimit: false,
+      isPermanent: false,
+      errorType: 'TIMEOUT',
+      message: 'AI processing timed out after 180 seconds.',
+      retryAfterMs: null
+    };
+  }
+
+  // 6. Transient server error (502, 503, 504)
+  if (status && [502, 503, 504].includes(status)) {
+    return {
+      isRateLimit: false,
+      isPermanent: false,
+      errorType: 'SERVICE_UNAVAILABLE',
+      message: 'AI Microservice is starting up or temporarily low on memory. Please retry in a few seconds.',
+      retryAfterMs: null
+    };
+  }
+
+  // 7. Generic unexpected provider/server error
+  return {
+    isRateLimit: false,
+    isPermanent: false,
+    errorType: 'UNKNOWN',
+    message: detail ? `AI Processing Error: ${detail}` : 'Metadata processing failed. Please retry.',
+    retryAfterMs: null
+  };
+};
+
 /**
  * Sends transcript text to the Python FastAPI NLP microservice and updates MongoDB document.
  * @param {string} transcriptId - The MongoDB document ID
@@ -18,27 +136,39 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * @param {string} fileName - Original file name if available
  */
 const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
+  const idStr = String(transcriptId);
+
+  // Duplicate analysis check
+  if (activeAnalyses.has(idStr)) {
+    console.log(`[ANALYSIS] Analysis for transcript ${idStr} is already active/in progress. Skipping duplicate request.`);
+    return await Transcript.findById(transcriptId);
+  }
+
+  activeAnalyses.add(idStr);
+
   try {
     // 1. Transition state to 'processing'
-    console.log(`[ANALYSIS] MongoDB status update - Transcript ${transcriptId} -> processing`);
+    console.log(`[ANALYSIS] MongoDB status update - Transcript ${idStr} -> processing`);
     await Transcript.findByIdAndUpdate(transcriptId, {
       status: 'processing',
       error: null
     });
 
-    // Sanitized URL without secrets
     const sanitizedUrl = AI_SERVICE_URL.replace(/:\/\/[^:]+:[^@]+@/, '://***:***@');
     console.log(`[AI DEBUG] Calling AI service: ${sanitizedUrl}`);
-    console.log(`[AI DEBUG] Request started for transcript ${transcriptId}`);
+    console.log(`[AI DEBUG] Request started for transcript ${idStr}`);
 
-    // 2. Call Python FastAPI AI Service with exponential backoff retry for 429 / transient errors
+    // 2. Controlled exponential backoff retry loop ONLY for rate limits
     let response;
     const maxRetries = 3;
-    let lastError = null;
+    let attempt = 0;
+    let lastClassified = null;
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    while (attempt < maxRetries) {
+      attempt++;
+      console.log(`[ANALYSIS LOG] Transcript ID: ${idStr} | Attempt: ${attempt}/${maxRetries} started.`);
+
       try {
-        console.log(`[AI DEBUG] Sending request to ${sanitizedUrl}/analyze (Attempt ${attempt}/${maxRetries})`);
         response = await axios.post(
           `${AI_SERVICE_URL}/analyze`,
           {
@@ -51,56 +181,68 @@ const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
           }
         );
 
-        console.log(`[AI DEBUG] Response status: ${response.status}`);
-        console.log(`[AI DEBUG] Response received successfully for transcript ${transcriptId}`);
-        lastError = null;
-        break; // Success! Exit retry loop
+        console.log(`[ANALYSIS LOG] Transcript ID: ${idStr} | Attempt: ${attempt}/${maxRetries} succeeded with HTTP ${response.status}.`);
+        lastClassified = null;
+        break; // Success!
       } catch (axiosErr) {
-        lastError = axiosErr;
-        const status = axiosErr.response?.status;
-        console.log(`[AI DEBUG] Attempt ${attempt}/${maxRetries} failed - Error code: ${axiosErr.code || 'N/A'}, Status: ${status || 'N/A'}, Message: ${axiosErr.message || 'N/A'}`);
+        lastClassified = classifyAiError(axiosErr);
 
-        // Only retry on rate limit (429) or transient server errors (502, 503, 504)
-        const isRetryable = status === 429 || [502, 503, 504].includes(status);
-        if (attempt < maxRetries && isRetryable) {
-          let backoffMs = Math.pow(2, attempt - 1) * 1000 + Math.floor(Math.random() * 300); // 1s, 2s, 4s + jitter
+        console.warn(
+          `[ANALYSIS LOG] Transcript ID: ${idStr} | Attempt: ${attempt}/${maxRetries} failed | ` +
+          `Provider Error Type: ${lastClassified.errorType} | Rate Limited: ${lastClassified.isRateLimit} | ` +
+          `Message: "${lastClassified.message}"`
+        );
 
-          // Respect Retry-After header if provided by server
-          const retryAfterHeader = axiosErr.response?.headers?.['retry-after'];
-          if (retryAfterHeader) {
-            const parsedSeconds = parseInt(retryAfterHeader, 10);
-            if (!isNaN(parsedSeconds) && parsedSeconds > 0) {
-              backoffMs = parsedSeconds * 1000;
-            }
-          }
-
-          console.log(`[AI RETRY] Rate limited / transient error (${status}). Retrying attempt ${attempt + 1}/${maxRetries} after ${backoffMs}ms...`);
+        // Controlled retry ONLY if error is genuinely rate-limit related and maxRetries not reached
+        if (lastClassified.isRateLimit && attempt < maxRetries) {
+          let backoffMs = lastClassified.retryAfterMs || (Math.pow(2, attempt - 1) * 1500 + Math.floor(Math.random() * 400));
+          console.log(
+            `[ANALYSIS LOG] Transcript ID: ${idStr} | Rate limited on attempt ${attempt}. ` +
+            `Retrying after delay: ${backoffMs}ms (Next attempt: ${attempt + 1}/${maxRetries}).`
+          );
           await delay(backoffMs);
         } else {
-          // Non-retryable error or retries exhausted
+          // Stop retrying (either permanent error, non-rate-limit error, or retries exhausted)
+          console.log(
+            `[ANALYSIS LOG] Transcript ID: ${idStr} | Stopping retry loop at attempt ${attempt}. ` +
+            `Reason: ${lastClassified.isRateLimit ? 'Max retries reached' : 'Non-retryable error (' + lastClassified.errorType + ')'}.`
+          );
           break;
         }
       }
     }
 
-    if (lastError) {
-      throw lastError;
+    if (lastClassified) {
+      // Retries failed or non-retryable error encountered
+      const finalStatus = lastClassified.isRateLimit ? 'temporarily_rate_limited' : 'failed';
+      const finalReason = lastClassified.message;
+
+      console.error(
+        `[ANALYSIS LOG] Final failure for Transcript ID: ${idStr} | ` +
+        `Final Status: ${finalStatus} | Error Type: ${lastClassified.errorType} | ` +
+        `Final Failure Reason: "${finalReason}"`
+      );
+
+      await Transcript.findByIdAndUpdate(transcriptId, {
+        status: finalStatus,
+        error: finalReason
+      });
+
+      return null;
     }
 
     const metadata = response.data || {};
-
     const domain = metadata.category && metadata.category.label ? metadata.category.label : 'General';
     const domainConfidence = metadata.category && typeof metadata.category.confidence === 'number' ? metadata.category.confidence : 0.85;
     const overallConfidence = 0.90;
 
-    // Canonical Word Count calculation
     const words = (rawText || '').trim().split(/[\s\r\n\t]+/).filter(Boolean);
     const wordCount = metadata.wordCount || words.length;
 
-    console.log(`[ANALYSIS] AI service response - Received HTTP ${response.status} for transcript ${transcriptId} (domain: ${domain})`);
+    console.log(`[ANALYSIS] AI service response - Received HTTP ${response.status} for transcript ${idStr} (domain: ${domain})`);
 
-    // 3. Persist extracted metadata and root-level fields, mark as completed
-    console.log(`[ANALYSIS] MongoDB status update - Transcript ${transcriptId} -> completed`);
+    // 3. Persist extracted metadata and mark completed
+    console.log(`[ANALYSIS] MongoDB status update - Transcript ${idStr} -> completed`);
     const updated = await Transcript.findByIdAndUpdate(
       transcriptId,
       {
@@ -118,37 +260,20 @@ const analyzeTranscript = async (transcriptId, rawText, fileName = '') => {
     return updated;
 
   } catch (error) {
-    let errorMessage = 'Metadata processing failed. Please retry.';
-
-    const status = error.response?.status;
-    if (status === 429) {
-      errorMessage = 'The AI provider is temporarily rate limited. Please retry shortly.';
-    } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-      errorMessage = 'AI NLP Microservice is unavailable or offline. Please ensure Python FastAPI service is running on port 8000.';
-    } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      errorMessage = 'AI processing timed out after 180 seconds.';
-    } else if (status && [502, 503, 504].includes(status)) {
-      errorMessage = 'AI Microservice is starting up or temporarily low on memory. Please retry in a few seconds.';
-    } else if (error.response && error.response.data && error.response.data.detail) {
-      errorMessage = `AI Processing Error: ${error.response.data.detail}`;
-    } else if (error.message) {
-      errorMessage = `Processing failure: ${error.message}`;
-    }
-
-    console.error(`[ANALYSIS] AI service response ERROR - Transcript ${transcriptId}:`, errorMessage);
-
-    // 4. Update status to failed with exact safe error description
-    console.log(`[ANALYSIS] MongoDB status update - Transcript ${transcriptId} -> failed (${errorMessage})`);
+    console.error(`[ANALYSIS LOG] Unexpected processing exception for Transcript ID: ${idStr}:`, error);
     await Transcript.findByIdAndUpdate(transcriptId, {
       status: 'failed',
-      error: errorMessage
+      error: error.message || 'Metadata processing failed. Please retry.'
     });
-
     return null;
+  } finally {
+    activeAnalyses.delete(idStr);
   }
 };
 
 module.exports = {
   analyzeTranscript,
+  isAnalysisActive,
   AI_SERVICE_URL
 };
+

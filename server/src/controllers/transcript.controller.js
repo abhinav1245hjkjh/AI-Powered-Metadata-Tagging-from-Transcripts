@@ -1,6 +1,6 @@
 const path = require('path');
 const Transcript = require('../models/Transcript');
-const { analyzeTranscript } = require('../services/aiService');
+const { analyzeTranscript, isAnalysisActive } = require('../services/aiService');
 
 // @desc    Create/Upload new transcript
 // @route   POST /api/transcripts
@@ -126,7 +126,7 @@ const getTranscripts = async (req, res) => {
     }
 
     // Status filter
-    if (status && ['queued', 'processing', 'completed', 'failed'].includes(status)) {
+    if (status && ['queued', 'processing', 'completed', 'failed', 'temporarily_rate_limited'].includes(status)) {
       filter.status = status;
     }
 
@@ -263,6 +263,15 @@ const retryTranscript = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized action.'
+      });
+    }
+
+    // Check if an analysis job is already active for this transcript
+    if (isAnalysisActive(transcript._id) || transcript.status === 'processing') {
+      return res.status(400).json({
+        success: false,
+        message: 'AI analysis for this transcript is already in progress.',
+        transcript
       });
     }
 

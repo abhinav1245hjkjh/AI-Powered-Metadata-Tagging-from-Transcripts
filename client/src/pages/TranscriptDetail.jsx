@@ -294,10 +294,15 @@ const TranscriptDetail = () => {
           </div>
         </div>
 
-        {/* Processing Stepper if in progress or failed */}
+        {/* Processing Stepper if in progress, rate limited, or failed */}
         {!isCompleted && (
           <div className="pt-2">
-            <ProcessingStepper status={transcript.status} />
+            <ProcessingStepper
+              status={transcript.status}
+              error={transcript.error}
+              onRetry={handleRetry}
+              isRetrying={isRetrying}
+            />
           </div>
         )}
       </div>

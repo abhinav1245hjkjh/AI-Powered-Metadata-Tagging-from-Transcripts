@@ -117,7 +117,7 @@ export const computeLibraryMetrics = (transcripts = []) => {
       processed += 1;
     } else if (status === 'processing' || status === 'queued') {
       processing += 1;
-    } else if (status === 'failed') {
+    } else if (status === 'failed' || status === 'temporarily_rate_limited') {
       failed += 1;
     }
 

@@ -23,6 +23,11 @@ const StatusBadge = ({ status = 'queued', size = 'sm' }) => {
       label: 'Failed',
       dotColor: 'bg-[#DC2626]',
       className: 'bg-[#FEF2F2] text-[#B42318] border-[#FCA5A5]'
+    },
+    temporarily_rate_limited: {
+      label: 'Rate Limited',
+      dotColor: 'bg-[#D97706] animate-pulse',
+      className: 'bg-[#FEF3C7] text-[#D97706] border-[#FDE68A]'
     }
   };
 

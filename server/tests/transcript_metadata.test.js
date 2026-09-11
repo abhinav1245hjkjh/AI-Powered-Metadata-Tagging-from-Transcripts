@@ -40,4 +40,19 @@ describe('Transcript Model & Metadata Representation Tests', () => {
     expect(json.domainConfidence).toBe(0.85);
     expect(json.overallConfidence).toBe(0.90);
   });
+
+  test('Transcript schema supports temporarily_rate_limited status', () => {
+    const doc = new Transcript({
+      title: 'Rate Limit Test',
+      rawText: 'Sample text.',
+      status: 'temporarily_rate_limited',
+      error: 'The AI provider is currently rate limiting requests. Your transcript is safe. Please retry analysis in a moment.',
+      createdBy: new mongoose.Types.ObjectId()
+    });
+
+    const json = doc.toJSON();
+
+    expect(json.status).toBe('temporarily_rate_limited');
+    expect(json.error).toContain('rate limiting requests');
+  });
 });

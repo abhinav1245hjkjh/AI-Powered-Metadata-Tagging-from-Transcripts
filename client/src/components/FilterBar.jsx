@@ -68,6 +68,7 @@ const FilterBar = ({
             <option value="completed">Completed</option>
             <option value="processing">Processing</option>
             <option value="queued">Queued</option>
+            <option value="temporarily_rate_limited">Rate Limited</option>
             <option value="failed">Failed</option>
           </select>
 
