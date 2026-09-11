@@ -171,25 +171,41 @@ const Dashboard = () => {
               icon={FileText}
               label="Total Transcripts"
               value={kpiMetrics.total}
-              description={`${kpiMetrics.processed} completed, ${kpiMetrics.processing} in progress`}
+              description={
+                kpiMetrics.total === 0
+                  ? 'No transcripts in workspace'
+                  : `${kpiMetrics.processed} completed, ${kpiMetrics.processing} in progress`
+              }
             />
             <StatCard
               icon={CheckCircle2}
               label="Completed Analysis"
               value={kpiMetrics.processed}
-              description={`${kpiMetrics.completionPercentage}% processing success rate`}
+              description={
+                kpiMetrics.total === 0
+                  ? 'No analyses performed'
+                  : `${kpiMetrics.completionPercentage}% processing success rate`
+              }
             />
             <StatCard
               icon={Layers}
               label="Entities Extracted"
-              value={kpiMetrics.totalEntities}
-              description={`Across ${kpiMetrics.uniqueCategoriesCount} domain categories`}
+              value={kpiMetrics.processed === 0 ? 'N/A' : kpiMetrics.totalEntities}
+              description={
+                kpiMetrics.processed === 0
+                  ? 'Awaiting completed AI analysis'
+                  : `Across ${kpiMetrics.uniqueCategoriesCount} domain categories`
+              }
             />
             <StatCard
               icon={Users}
               label="Speakers Identified"
-              value={kpiMetrics.distinctSpeakers}
-              description="Diarized conversational participants"
+              value={kpiMetrics.processed === 0 ? 'N/A' : kpiMetrics.distinctSpeakers}
+              description={
+                kpiMetrics.processed === 0
+                  ? 'Awaiting completed AI analysis'
+                  : 'Diarized conversational participants'
+              }
             />
           </div>
         )}

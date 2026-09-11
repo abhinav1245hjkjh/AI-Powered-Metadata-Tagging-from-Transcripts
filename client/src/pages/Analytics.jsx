@@ -253,32 +253,32 @@ const Analytics = () => {
               <StatCard
                 icon={Layers}
                 label="Scenes / Segments"
-                value={analyticsData.totalSegments}
-                description="Dialogue blocks"
+                value={analyticsData.analyzedTranscriptsCount === 0 ? 'N/A' : analyticsData.totalSegments}
+                description={analyticsData.analyzedTranscriptsCount === 0 ? 'Awaiting AI analysis' : 'Dialogue blocks'}
               />
               <StatCard
                 icon={Sparkles}
                 label="Named Entities"
-                value={analyticsData.totalEntities}
-                description="Tagged mentions"
+                value={analyticsData.analyzedTranscriptsCount === 0 ? 'N/A' : analyticsData.totalEntities}
+                description={analyticsData.analyzedTranscriptsCount === 0 ? 'Awaiting AI analysis' : 'Tagged mentions'}
               />
               <StatCard
                 icon={Users}
                 label="Speakers"
-                value={analyticsData.distinctSpeakers}
-                description="Distinct voices"
+                value={analyticsData.analyzedTranscriptsCount === 0 ? 'N/A' : analyticsData.distinctSpeakers}
+                description={analyticsData.analyzedTranscriptsCount === 0 ? 'Awaiting AI analysis' : 'Distinct voices'}
               />
               <StatCard
                 icon={HeartHandshake}
                 label="Dominant Tone"
-                value={analyticsData.dominantSentiment}
-                description="Overall sentiment"
+                value={analyticsData.analyzedTranscriptsCount === 0 ? 'N/A' : analyticsData.dominantSentiment}
+                description={analyticsData.analyzedTranscriptsCount === 0 ? 'Awaiting AI analysis' : 'Overall sentiment'}
               />
               <StatCard
                 icon={Compass}
                 label="Domains"
-                value={analyticsData.activeDomainsCount}
-                description="Content categories"
+                value={analyticsData.analyzedTranscriptsCount === 0 ? 'N/A' : analyticsData.activeDomainsCount}
+                description={analyticsData.analyzedTranscriptsCount === 0 ? 'Awaiting AI analysis' : 'Content categories'}
               />
             </>
           )}
