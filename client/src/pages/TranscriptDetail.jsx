@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import AppShell from '../components/AppShell';
@@ -36,7 +36,12 @@ import {
   LayoutList,
   Network,
   Activity,
-  Play
+  Play,
+  ChevronDown,
+  MoreHorizontal,
+  Sparkles,
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -50,8 +55,10 @@ const TranscriptDetail = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [showMoreDropdown, setShowMoreDropdown] = useState(false);
 
   const [transcriptViewerSearch, setTranscriptViewerSearch] = useState('');
+  const dropdownRef = useRef(null);
 
   const fetchTranscript = async (isSilent = false) => {
     try {
@@ -84,6 +91,17 @@ const TranscriptDetail = () => {
       if (interval) clearInterval(interval);
     };
   }, [transcript]);
+
+  // Close dropdown menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowMoreDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -160,6 +178,8 @@ const TranscriptDetail = () => {
 
   const meta = transcript.metadata || {};
   const isCompleted = transcript.status === 'completed';
+  const isRateLimited = transcript.status === 'temporarily_rate_limited';
+  const isPending = transcript.status === 'queued' || transcript.status === 'processing';
 
   const raw = typeof transcript.rawText === 'string' ? transcript.rawText.trim() : '';
   const wordCount = raw ? raw.split(/\s+/).filter(Boolean).length : 0;
@@ -171,17 +191,66 @@ const TranscriptDetail = () => {
   const graphNodeCount = graphData.nodes?.length || 0;
   const timelineSegmentsCount = timelineData.segments?.length || 0;
 
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: LayoutList },
-    { id: 'dynamics', label: `Dynamics (${timelineSegmentsCount})`, icon: Activity },
-    { id: 'graph', label: `Intelligence Graph (${graphNodeCount})`, icon: Network },
-    { id: 'entities', label: `Entities (${entityCount})`, icon: Layers },
-    { id: 'topics', label: `Topics (${meta.keywords?.length || 0})`, icon: Tag },
-    { id: 'sentiment', label: 'Sentiment & Emotion', icon: HeartHandshake },
-    { id: 'speakers', label: `Speakers (${speakerCount})`, icon: Users },
-    { id: 'segments', label: `Segments (${segmentCount})`, icon: Film },
-    { id: 'raw', label: 'Raw Transcript', icon: FileText }
+  // Primary Tabs visible on the tab bar
+  const primaryTabs = [
+    { id: 'overview', label: 'Overview', icon: LayoutList, requiresAnalysis: false },
+    { id: 'dynamics', label: `Dynamics${isCompleted ? ` (${timelineSegmentsCount})` : ''}`, icon: Activity, requiresAnalysis: true },
+    { id: 'topics', label: `Topics${isCompleted ? ` (${meta.keywords?.length || 0})` : ''}`, icon: Tag, requiresAnalysis: true },
+    { id: 'sentiment', label: 'Sentiment & Tone', icon: HeartHandshake, requiresAnalysis: true },
+    { id: 'speakers', label: `Speakers${isCompleted ? ` (${speakerCount})` : ''}`, icon: Users, requiresAnalysis: true },
+    { id: 'raw', label: 'Raw Transcript', icon: FileText, requiresAnalysis: false }
   ];
+
+  // Secondary Tabs collapsed into the "More" dropdown
+  const moreTabs = [
+    { id: 'graph', label: `Intelligence Graph${isCompleted ? ` (${graphNodeCount})` : ''}`, icon: Network, requiresAnalysis: true },
+    { id: 'entities', label: `Entities${isCompleted ? ` (${entityCount})` : ''}`, icon: Layers, requiresAnalysis: true },
+    { id: 'segments', label: `Segments${isCompleted ? ` (${segmentCount})` : ''}`, icon: Film, requiresAnalysis: true }
+  ];
+
+  const activeMoreTab = moreTabs.find((t) => t.id === activeTab);
+
+  // Helper to render polished empty states for analysis-dependent sections when incomplete
+  const renderTabContent = (tabId, contentComponent) => {
+    const isAnalysisTab = tabId !== 'overview' && tabId !== 'raw';
+    if (isAnalysisTab && !isCompleted) {
+      return (
+        <div className="saas-card p-8 text-center space-y-4 bg-white border border-[#E4E7EC] rounded-xl shadow-saas max-w-xl mx-auto my-6">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] flex items-center justify-center shadow-saas">
+            {isRateLimited ? (
+              <Clock className="w-6 h-6 text-[#D97706] animate-pulse" />
+            ) : (
+              <Sparkles className="w-6 h-6 text-[#3157D5]" />
+            )}
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-[#101828]">
+              {isRateLimited ? 'AI Analysis Temporarily Busy' : 'Awaiting AI Analysis'}
+            </h3>
+            <p className="text-xs text-[#64748B] max-w-md mx-auto leading-relaxed">
+              {isRateLimited
+                ? 'The AI provider is currently rate limiting requests. Your transcript is safe. Please retry analysis in a moment.'
+                : 'Analysis results and extracted metadata will appear here once transcript processing is complete.'}
+            </p>
+          </div>
+          {isRateLimited && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleRetry}
+                disabled={isRetrying}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#D97706] hover:bg-[#B45309] text-white text-xs font-semibold shadow-saas transition-all cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
+                <span>{isRetrying ? 'Re-Queueing...' : 'Retry Analysis'}</span>
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+    return contentComponent;
+  };
 
   return (
     <AppShell>
@@ -196,16 +265,44 @@ const TranscriptDetail = () => {
         </Link>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Analyze / Re-analyze CTA */}
+          {/* State-Aware Primary Action Button */}
           <button
             type="button"
             onClick={handleRetry}
-            disabled={isRetrying}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#3157D5] hover:bg-[#2446B8] disabled:bg-[#94A3B8] disabled:cursor-not-allowed text-white text-xs sm:text-sm font-semibold shadow-saas transition-all cursor-pointer"
-            title="Re-run Multi-Model NLP Pipeline"
+            disabled={isRetrying || isPending}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold shadow-saas transition-all cursor-pointer ${
+              isRateLimited
+                ? 'bg-[#D97706] hover:bg-[#B45309] text-white'
+                : isCompleted
+                ? 'bg-[#3157D5] hover:bg-[#2446B8] text-white'
+                : 'bg-[#3157D5] hover:bg-[#2446B8] disabled:bg-[#94A3B8] disabled:cursor-not-allowed text-white'
+            }`}
+            title={
+              isRateLimited
+                ? 'Retry AI Analysis'
+                : isCompleted
+                ? 'Re-run Multi-Model NLP Pipeline'
+                : 'AI Analysis In Progress'
+            }
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>{isRetrying ? 'Re-Queueing...' : isCompleted ? 'Re-Analyze Transcript' : 'Analyze Transcript'}</span>
+            {isRateLimited ? (
+              <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
+            ) : isRetrying || isPending ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Play className="w-3.5 h-3.5 fill-current" />
+            )}
+            <span>
+              {isRetrying
+                ? 'Re-Queueing...'
+                : transcript.status === 'queued'
+                ? 'Queued for Analysis'
+                : transcript.status === 'processing'
+                ? 'Analyzing...'
+                : isRateLimited
+                ? 'Retry Analysis'
+                : 'Re-Analyze Transcript'}
+            </span>
           </button>
 
           {isCompleted && (
@@ -245,11 +342,12 @@ const TranscriptDetail = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Single Status Badge beside transcript title area */}
               <StatusBadge status={transcript.status} size="xs" />
-              {meta.category && (
+              {isCompleted && meta.category && (
                 <CategoryBadge category={meta.category} size="xs" />
               )}
-              {meta.sentiment && (
+              {isCompleted && meta.sentiment && (
                 <SentimentBadge sentiment={meta.sentiment} size="xs" />
               )}
               <span className="text-xs font-mono text-[#344054] px-2 py-0.5 rounded-md bg-[#F2F4F7] border border-[#EAECF0] font-medium">
@@ -285,16 +383,20 @@ const TranscriptDetail = () => {
             </div>
             <div className="px-3.5 py-2 rounded-lg bg-[#F9FAFB] border border-[#E4E7EC] text-center min-w-[70px]">
               <div className="text-[10px] uppercase font-bold text-[#475467]">Entities</div>
-              <div className="text-sm font-bold text-[#15803D] font-mono tabular-nums">{entityCount}</div>
+              <div className="text-sm font-bold text-[#15803D] font-mono tabular-nums">
+                {isCompleted ? entityCount : 'N/A'}
+              </div>
             </div>
             <div className="px-3.5 py-2 rounded-lg bg-[#F9FAFB] border border-[#E4E7EC] text-center min-w-[70px]">
               <div className="text-[10px] uppercase font-bold text-[#475467]">Speakers</div>
-              <div className="text-sm font-bold text-[#7C3AED] font-mono tabular-nums">{speakerCount}</div>
+              <div className="text-sm font-bold text-[#7C3AED] font-mono tabular-nums">
+                {isCompleted ? speakerCount : 'N/A'}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Processing Stepper if in progress, rate limited, or failed */}
+        {/* Processing Stepper Card if in progress, rate limited, or failed */}
         {!isCompleted && (
           <div className="pt-2">
             <ProcessingStepper
@@ -307,29 +409,102 @@ const TranscriptDetail = () => {
         )}
       </div>
 
-      {/* Tab Navigation Workspace */}
-      <div className="sticky top-16 z-30 flex border-b border-[#E4E7EC] overflow-x-auto bg-white rounded-xl px-2 shadow-saas no-scrollbar space-x-1 flex-nowrap">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
+      {/* Tab Navigation Workspace with Primary Tabs + "More" Dropdown */}
+      <div className="sticky top-16 z-30 flex items-center justify-between border-b border-[#E4E7EC] bg-white rounded-xl px-2 shadow-saas no-scrollbar space-x-1 overflow-x-auto flex-nowrap">
+        <div className="flex items-center space-x-1 flex-nowrap overflow-x-auto no-scrollbar w-full">
+          {primaryTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            const isSubdued = tab.requiresAnalysis && !isCompleted;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3.5 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all duration-200 flex items-center gap-2 flex-shrink-0 cursor-pointer whitespace-nowrap ${
+                  isActive
+                    ? 'border-[#3157D5] text-[#3157D5] bg-[#EEF3FF]/60 rounded-t-lg'
+                    : isSubdued
+                    ? 'border-transparent text-[#94A3B8] hover:text-[#475467] hover:bg-[#F8FAFC] rounded-t-lg'
+                    : 'border-transparent text-[#475467] hover:text-[#101828] hover:bg-[#F9FAFB] rounded-t-lg'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-[#3157D5]' : isSubdued ? 'text-[#94A3B8]' : 'text-[#64748B]'}`} />
+                <span>{tab.label}</span>
+                {isSubdued && (
+                  <span className="text-[9px] uppercase font-mono px-1.5 py-0.2 rounded bg-[#F1F5F9] text-[#94A3B8]">
+                    Awaiting
+                  </span>
+                )}
+              </button>
+            );
+          })}
+
+          {/* More Dropdown Menu */}
+          <div className="relative flex-shrink-0 ml-auto" ref={dropdownRef}>
             <button
-              key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3.5 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 flex-shrink-0 cursor-pointer whitespace-nowrap ${
-                isActive
-                  ? 'border-[#3157D5] text-[#3157D5] bg-[#EEF3FF]/60 rounded-t-lg'
-                  : 'border-transparent text-[#475467] hover:text-[#101828] hover:bg-[#F9FAFB] rounded-t-lg'
+              onClick={() => setShowMoreDropdown(!showMoreDropdown)}
+              className={`px-3.5 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all duration-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap rounded-t-lg ${
+                activeMoreTab
+                  ? 'border-[#3157D5] text-[#3157D5] bg-[#EEF3FF]/60 font-bold'
+                  : 'border-transparent text-[#475467] hover:text-[#101828] hover:bg-[#F9FAFB]'
               }`}
             >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
+              {activeMoreTab ? (
+                <>
+                  <activeMoreTab.icon className="w-4 h-4 text-[#3157D5]" />
+                  <span>{activeMoreTab.label}</span>
+                </>
+              ) : (
+                <>
+                  <MoreHorizontal className="w-4 h-4 text-[#64748B]" />
+                  <span>More</span>
+                </>
+              )}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showMoreDropdown ? 'rotate-180' : ''}`} />
             </button>
-          );
-        })}
-      </div>
 
+            {showMoreDropdown && (
+              <div className="absolute right-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-[#E4E7EC] py-1.5 z-50 animate-fadeIn transition-all duration-150">
+                <div className="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider text-[#94A3B8] border-b border-[#F1F5F9] mb-1">
+                  Additional Insights
+                </div>
+                {moreTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  const isSubdued = tab.requiresAnalysis && !isCompleted;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setShowMoreDropdown(false);
+                      }}
+                      className={`w-full px-3.5 py-2 text-xs font-semibold flex items-center justify-between transition-colors text-left cursor-pointer ${
+                        isActive
+                          ? 'bg-[#EEF3FF] text-[#3157D5] font-bold'
+                          : 'text-[#475467] hover:bg-[#F8FAFB] hover:text-[#101828]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-[#3157D5]' : isSubdued ? 'text-[#94A3B8]' : 'text-[#64748B]'}`} />
+                        <span>{tab.label}</span>
+                      </div>
+                      {isSubdued && (
+                        <span className="text-[9px] uppercase font-mono px-1 rounded bg-[#F1F5F9] text-[#94A3B8]">
+                          Awaiting
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Tab Content Panels */}
       {activeTab === 'overview' && (
@@ -348,7 +523,7 @@ const TranscriptDetail = () => {
                   </p>
                 </div>
               </div>
-              <StatusBadge status={transcript.status} size="sm" />
+              {/* Removed duplicate StatusBadge to satisfy Requirement 1 */}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -369,10 +544,10 @@ const TranscriptDetail = () => {
               <div className="p-4 rounded-xl bg-[#F9FAFB] border border-[#E4E7EC] space-y-1">
                 <div className="text-xs font-semibold text-[#475467]">Primary Sentiment</div>
                 <div className="pt-0.5">
-                  {meta.sentiment ? (
+                  {isCompleted && meta.sentiment ? (
                     <SentimentBadge sentiment={meta.sentiment} size="sm" />
                   ) : (
-                    <span className="text-xs text-[#667085]">N/A</span>
+                    <span className="text-xs text-[#94A3B8] font-mono">N/A</span>
                   )}
                 </div>
               </div>
@@ -380,10 +555,10 @@ const TranscriptDetail = () => {
               <div className="p-4 rounded-xl bg-[#F9FAFB] border border-[#E4E7EC] space-y-1">
                 <div className="text-xs font-semibold text-[#475467]">Classified Domain</div>
                 <div className="pt-0.5">
-                  {meta.category ? (
+                  {isCompleted && meta.category ? (
                     <CategoryBadge category={meta.category} size="sm" />
                   ) : (
-                    <span className="text-xs text-[#667085]">Unclassified</span>
+                    <span className="text-xs text-[#94A3B8] font-mono">Unclassified</span>
                   )}
                 </div>
               </div>
@@ -403,13 +578,15 @@ const TranscriptDetail = () => {
                   <div className="flex items-center justify-between mb-1">
                     <Tag className="w-4 h-4 text-[#3157D5]" />
                     <span className="text-xs font-mono font-bold text-[#3157D5]">
-                      {meta.keywords?.length || 0}
+                      {isCompleted ? (meta.keywords?.length || 0) : '-'}
                     </span>
                   </div>
                   <div className="text-xs font-bold text-[#101828] group-hover:text-[#3157D5] transition-colors">
                     Topics & Keywords
                   </div>
-                  <div className="text-[11px] text-[#475467] mt-0.5">Explore key terms</div>
+                  <div className="text-[11px] text-[#475467] mt-0.5">
+                    {isCompleted ? 'Explore key terms' : 'Awaiting analysis'}
+                  </div>
                 </button>
 
                 <button
@@ -420,13 +597,15 @@ const TranscriptDetail = () => {
                   <div className="flex items-center justify-between mb-1">
                     <Layers className="w-4 h-4 text-[#15803D]" />
                     <span className="text-xs font-mono font-bold text-[#15803D]">
-                      {entityCount}
+                      {isCompleted ? entityCount : '-'}
                     </span>
                   </div>
                   <div className="text-xs font-bold text-[#101828] group-hover:text-[#3157D5] transition-colors">
                     Named Entities
                   </div>
-                  <div className="text-[11px] text-[#475467] mt-0.5">Persons, orgs & places</div>
+                  <div className="text-[11px] text-[#475467] mt-0.5">
+                    {isCompleted ? 'Persons, orgs & places' : 'Awaiting analysis'}
+                  </div>
                 </button>
 
                 <button
@@ -437,13 +616,15 @@ const TranscriptDetail = () => {
                   <div className="flex items-center justify-between mb-1">
                     <HeartHandshake className="w-4 h-4 text-[#D97706]" />
                     <span className="text-xs font-mono font-bold text-[#D97706]">
-                      {meta.emotions?.length || 0}
+                      {isCompleted ? (meta.emotions?.length || 0) : '-'}
                     </span>
                   </div>
                   <div className="text-xs font-bold text-[#101828] group-hover:text-[#3157D5] transition-colors">
                     Sentiment & Tone
                   </div>
-                  <div className="text-[11px] text-[#475467] mt-0.5">Polarity & emotions</div>
+                  <div className="text-[11px] text-[#475467] mt-0.5">
+                    {isCompleted ? 'Polarity & emotions' : 'Awaiting analysis'}
+                  </div>
                 </button>
 
                 <button
@@ -454,13 +635,15 @@ const TranscriptDetail = () => {
                   <div className="flex items-center justify-between mb-1">
                     <Users className="w-4 h-4 text-[#7C3AED]" />
                     <span className="text-xs font-mono font-bold text-[#7C3AED]">
-                      {speakerCount}
+                      {isCompleted ? speakerCount : '-'}
                     </span>
                   </div>
                   <div className="text-xs font-bold text-[#101828] group-hover:text-[#3157D5] transition-colors">
                     Speakers
                   </div>
-                  <div className="text-[11px] text-[#475467] mt-0.5">Diarization & turns</div>
+                  <div className="text-[11px] text-[#475467] mt-0.5">
+                    {isCompleted ? 'Diarization & turns' : 'Awaiting analysis'}
+                  </div>
                 </button>
 
                 <button
@@ -471,13 +654,15 @@ const TranscriptDetail = () => {
                   <div className="flex items-center justify-between mb-1">
                     <Film className="w-4 h-4 text-[#0891B2]" />
                     <span className="text-xs font-mono font-bold text-[#0891B2]">
-                      {segmentCount}
+                      {isCompleted ? segmentCount : '-'}
                     </span>
                   </div>
                   <div className="text-xs font-bold text-[#101828] group-hover:text-[#3157D5] transition-colors">
                     Scene Segments
                   </div>
-                  <div className="text-[11px] text-[#475467] mt-0.5">Timeline & structure</div>
+                  <div className="text-[11px] text-[#475467] mt-0.5">
+                    {isCompleted ? 'Timeline & structure' : 'Awaiting analysis'}
+                  </div>
                 </button>
               </div>
             </div>
@@ -492,9 +677,13 @@ const TranscriptDetail = () => {
                   Domain Classification
                 </h3>
               </div>
-              {meta.category && (
+              {isCompleted && meta.category ? (
                 <span className="text-xs text-[#3157D5] font-mono font-bold">
                   {Math.round((meta.category.confidence || 0) * 100)}% Confidence
+                </span>
+              ) : (
+                <span className="text-xs text-[#94A3B8] font-mono">
+                  Awaiting Analysis
                 </span>
               )}
             </div>
@@ -503,34 +692,40 @@ const TranscriptDetail = () => {
               <div>
                 <div className="text-xs text-[#475467] font-semibold">Classified Domain</div>
                 <div className="text-base font-bold text-[#101828] capitalize mt-0.5">
-                  {meta.category?.label || 'Processing...'}
+                  {isCompleted && meta.category?.label ? meta.category.label : 'Awaiting AI analysis...'}
                 </div>
               </div>
-              <CategoryBadge category={meta.category} size="md" />
+              {isCompleted && meta.category ? (
+                <CategoryBadge category={meta.category} size="md" />
+              ) : (
+                <span className="text-xs text-[#94A3B8] font-mono font-medium px-2.5 py-1 rounded-md bg-[#F1F5F9] border border-[#E2E8F0]">
+                  N/A
+                </span>
+              )}
             </div>
           </div>
         </div>
       )}
 
       {/* CONVERSATION DYNAMICS TIMELINE TAB */}
-      {activeTab === 'dynamics' && (
+      {activeTab === 'dynamics' && renderTabContent('dynamics', (
         <ConversationTimeline
           timelineData={timelineData}
           onNavigateToTranscript={handleNavigateToTranscript}
           title={transcript.title}
         />
-      )}
+      ))}
 
       {/* INTELLIGENCE GRAPH TAB */}
-      {activeTab === 'graph' && (
+      {activeTab === 'graph' && renderTabContent('graph', (
         <NarrativeGraph
           graphData={graphData}
           onNavigateToTranscript={handleNavigateToTranscript}
           title={transcript.title}
         />
-      )}
+      ))}
 
-      {activeTab === 'entities' && (
+      {activeTab === 'entities' && renderTabContent('entities', (
         <div className="saas-card p-5 space-y-4 bg-white border border-[#E4E7EC] shadow-saas">
           <div className="flex items-center justify-between border-b border-[#EAECF0] pb-3">
             <div>
@@ -548,9 +743,9 @@ const TranscriptDetail = () => {
 
           <EntityList entities={meta.entities || []} grouped={true} />
         </div>
-      )}
+      ))}
 
-      {activeTab === 'topics' && (
+      {activeTab === 'topics' && renderTabContent('topics', (
         <div className="saas-card p-5 space-y-4 bg-white border border-[#E4E7EC] shadow-saas">
           <div className="flex items-center justify-between border-b border-[#EAECF0] pb-3">
             <div>
@@ -568,9 +763,9 @@ const TranscriptDetail = () => {
 
           <TopicList keywords={meta.keywords || []} />
         </div>
-      )}
+      ))}
 
-      {activeTab === 'sentiment' && (
+      {activeTab === 'sentiment' && renderTabContent('sentiment', (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Sentiment Gauge */}
           <div className="saas-card p-5 space-y-4 bg-white border border-[#E4E7EC] shadow-saas">
@@ -598,16 +793,16 @@ const TranscriptDetail = () => {
             <EmotionChart emotions={meta.emotions || []} />
           </div>
         </div>
-      )}
+      ))}
 
-      {activeTab === 'speakers' && (
+      {activeTab === 'speakers' && renderTabContent('speakers', (
         <SpeakerIntelligence
           transcript={transcript}
           onNavigateToTranscript={handleNavigateToTranscript}
         />
-      )}
+      ))}
 
-      {activeTab === 'segments' && (
+      {activeTab === 'segments' && renderTabContent('segments', (
         <div className="saas-card p-5 space-y-4 bg-white border border-[#E4E7EC] shadow-saas">
           <div className="border-b border-[#EAECF0] pb-3">
             <h3 className="font-bold text-sm text-[#101828]">
@@ -620,7 +815,7 @@ const TranscriptDetail = () => {
 
           <SceneTimeline segments={meta.segments || []} />
         </div>
-      )}
+      ))}
 
       {activeTab === 'raw' && (
         <TranscriptViewer
@@ -629,6 +824,7 @@ const TranscriptDetail = () => {
           initialSearchQuery={transcriptViewerSearch}
         />
       )}
+
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
