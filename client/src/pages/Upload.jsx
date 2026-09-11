@@ -24,6 +24,8 @@ const Upload = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTranscript, setActiveTranscript] = useState(null);
 
+  const [isRetrying, setIsRetrying] = useState(false);
+
   // Poll for completion of currently uploaded transcript
   useEffect(() => {
     let intervalId = null;
@@ -41,6 +43,9 @@ const Upload = () => {
             if (updated.status === 'completed') {
               toast.success('Metadata extraction complete!');
               clearInterval(intervalId);
+            } else if (updated.status === 'temporarily_rate_limited') {
+              toast.error('AI provider is temporarily rate limited. Your transcript is safe.');
+              clearInterval(intervalId);
             } else if (updated.status === 'failed') {
               toast.error(updated.error || 'Processing failed.');
               clearInterval(intervalId);
@@ -56,6 +61,24 @@ const Upload = () => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [activeTranscript]);
+
+  const handleRetry = async () => {
+    if (!activeTranscript || isRetrying) return;
+    setIsRetrying(true);
+    try {
+      await api.post(`/transcripts/${activeTranscript._id}/retry`);
+      toast.success('Transcript analysis re-queued.');
+      setActiveTranscript({
+        ...activeTranscript,
+        status: 'queued',
+        error: null
+      });
+    } catch (err) {
+      toast.error('Failed to retry transcript processing.');
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   const handleUploadSubmit = async ({ isFile, payload }) => {
     if (isSubmitting) return;
@@ -91,7 +114,12 @@ const Upload = () => {
       {/* Active Processing Stepper */}
       {activeTranscript && (
         <div className="space-y-3">
-          <ProcessingStepper status={activeTranscript.status} />
+          <ProcessingStepper
+            status={activeTranscript.status}
+            error={activeTranscript.error}
+            onRetry={handleRetry}
+            isRetrying={isRetrying}
+          />
 
           {activeTranscript.status === 'completed' && (
             <div className="p-4 rounded-xl bg-[#ECFDF3] border border-[#D1FADF] flex items-center justify-between flex-wrap gap-3">
@@ -117,6 +145,43 @@ const Upload = () => {
             </div>
           )}
 
+          {activeTranscript.status === 'temporarily_rate_limited' && (
+            <div className="p-4 rounded-xl bg-[#FEF3C7] border border-[#FDE68A] flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-[#D97706] flex-shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-[#92400E]">AI analysis temporarily busy</h4>
+                  <p className="text-xs text-[#B45309] font-medium">
+                    {activeTranscript.error || 'The AI provider is currently rate limiting requests. Your transcript is safe. Please retry analysis in a moment.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  disabled={isRetrying}
+                  className="px-3.5 py-2 rounded-lg bg-[#D97706] hover:bg-[#B45309] disabled:bg-[#94A3B8] text-white text-xs font-semibold shadow-saas transition-all cursor-pointer"
+                >
+                  {isRetrying ? 'Re-Queueing...' : 'Retry Analysis'}
+                </button>
+                <button
+                  onClick={() => navigate(`/transcripts/${activeTranscript._id}`)}
+                  className="px-3 py-2 rounded-lg bg-white hover:bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] text-xs font-semibold cursor-pointer"
+                >
+                  View Transcript
+                </button>
+                <button
+                  onClick={() => setActiveTranscript(null)}
+                  className="px-3 py-2 rounded-lg bg-white hover:bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] text-xs font-semibold cursor-pointer"
+                >
+                  Upload Another
+                </button>
+              </div>
+            </div>
+          )}
+
           {activeTranscript.status === 'failed' && (
             <div className="p-4 rounded-xl bg-[#FEF3F2] border border-[#FECDCA] flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
@@ -129,12 +194,22 @@ const Upload = () => {
                 </div>
               </div>
 
-              <button
-                onClick={() => setActiveTranscript(null)}
-                className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F9FAFB] border border-[#D0D5DD] text-[#344054] text-xs font-semibold cursor-pointer"
-              >
-                Upload Another
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  disabled={isRetrying}
+                  className="px-3.5 py-2 rounded-lg bg-[#B42318] hover:bg-[#912018] disabled:bg-[#94A3B8] text-white text-xs font-semibold shadow-saas transition-all cursor-pointer"
+                >
+                  {isRetrying ? 'Re-Queueing...' : 'Retry Analysis'}
+                </button>
+                <button
+                  onClick={() => setActiveTranscript(null)}
+                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F9FAFB] border border-[#D0D5DD] text-[#344054] text-xs font-semibold cursor-pointer"
+                >
+                  Upload Another
+                </button>
+              </div>
             </div>
           )}
         </div>

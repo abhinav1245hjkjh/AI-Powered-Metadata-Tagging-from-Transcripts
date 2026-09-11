@@ -17,7 +17,7 @@ const transcriptSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['queued', 'processing', 'completed', 'failed'],
+    enum: ['queued', 'processing', 'completed', 'failed', 'temporarily_rate_limited'],
     default: 'queued',
     index: true
   },

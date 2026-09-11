@@ -117,6 +117,15 @@ async def analyze_transcript(payload: AnalyzeRequest):
 
     logger.info(f"Received analysis request for transcript (filename: '{filename}', length: {len(raw_text)} chars)")
 
+    # Developer simulation mode for rate-limit testing
+    if os.environ.get("SIMULATE_RATE_LIMIT", "").lower() in {"true", "1", "yes"}:
+        logger.warning("[AI TEST] SIMULATE_RATE_LIMIT active: returning HTTP 429 Rate Limit response.")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="The AI provider is temporarily rate limited. Please retry shortly.",
+            headers={"Retry-After": "2"}
+        )
+
     # 1. Keywords Extraction
     try:
         keywords = extract_keywords(raw_text)
