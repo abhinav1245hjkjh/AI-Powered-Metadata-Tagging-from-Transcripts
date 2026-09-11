@@ -77,7 +77,7 @@ const DataTable = ({
           <tbody className="divide-y divide-[#E2E8F0]">
             {transcripts.map((t) => {
               const meta = t.metadata || {};
-              const isFailed = t.status === 'failed';
+              const isRetryable = t.status === 'failed' || t.status === 'temporarily_rate_limited';
 
               return (
                 <tr
@@ -137,7 +137,7 @@ const DataTable = ({
                   {/* Actions Column */}
                   <td className="py-3.5 px-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      {isFailed && onRetry && (
+                      {isRetryable && onRetry && (
                         <button
                           type="button"
                           onClick={() => onRetry(t._id)}

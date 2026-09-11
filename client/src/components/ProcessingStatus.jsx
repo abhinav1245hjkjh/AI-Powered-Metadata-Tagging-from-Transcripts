@@ -19,7 +19,9 @@ export const ProcessingStepper = ({
   status = 'processing',
   error = null,
   onRetry = null,
-  isRetrying = false
+  isRetrying = false,
+  onViewTranscript = null,
+  onUploadAnother = null
 }) => {
   const isCompleted = status === 'completed';
   const isRateLimited = status === 'temporarily_rate_limited';
@@ -56,19 +58,46 @@ export const ProcessingStepper = ({
                 {error || 'The AI provider is currently rate limiting requests. Your transcript is safe. Please retry analysis in a moment.'}
               </span>
             )}
+            {isFailed && (
+              <span className="text-[11px] text-[#B42318] font-medium mt-0.5">
+                {error || 'Metadata processing failed. Please retry.'}
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
           {onRetry && (isRateLimited || isFailed) && (
             <button
               type="button"
               onClick={onRetry}
               disabled={isRetrying}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#3157D5] hover:bg-[#2446B8] disabled:bg-[#94A3B8] disabled:cursor-not-allowed text-white text-xs font-semibold shadow-saas transition-all cursor-pointer"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold shadow-saas transition-all cursor-pointer ${
+                isRateLimited
+                  ? 'bg-[#D97706] hover:bg-[#B45309] disabled:bg-[#94A3B8]'
+                  : 'bg-[#B42318] hover:bg-[#912018] disabled:bg-[#94A3B8]'
+              }`}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
               <span>{isRetrying ? 'Re-Queueing...' : 'Retry Analysis'}</span>
+            </button>
+          )}
+          {onViewTranscript && (isRateLimited || isCompleted || isFailed) && (
+            <button
+              type="button"
+              onClick={onViewTranscript}
+              className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F8FAFB] border border-[#D0D5DD] text-[#344054] hover:text-[#101828] text-xs font-semibold shadow-saas transition-all cursor-pointer"
+            >
+              View Transcript
+            </button>
+          )}
+          {onUploadAnother && (isRateLimited || isCompleted || isFailed) && (
+            <button
+              type="button"
+              onClick={onUploadAnother}
+              className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F8FAFB] border border-[#D0D5DD] text-[#344054] hover:text-[#101828] text-xs font-semibold shadow-saas transition-all cursor-pointer"
+            >
+              Upload Another
             </button>
           )}
           <StatusBadge status={status} size="xs" />

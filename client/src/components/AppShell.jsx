@@ -6,7 +6,7 @@ const AppShell = ({ children }) => {
     <div className="min-h-screen bg-[#F4F7FC] flex flex-col text-[#0F172A] antialiased">
       <TopNavbar />
 
-      <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in">
         {children}
       </main>
     </div>

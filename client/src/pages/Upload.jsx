@@ -119,6 +119,8 @@ const Upload = () => {
             error={activeTranscript.error}
             onRetry={handleRetry}
             isRetrying={isRetrying}
+            onViewTranscript={() => navigate(`/transcripts/${activeTranscript._id}`)}
+            onUploadAnother={() => setActiveTranscript(null)}
           />
 
           {activeTranscript.status === 'completed' && (
@@ -142,74 +144,6 @@ const Upload = () => {
                 <span>Inspect Metadata</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </div>
-          )}
-
-          {activeTranscript.status === 'temporarily_rate_limited' && (
-            <div className="p-4 rounded-xl bg-[#FEF3C7] border border-[#FDE68A] flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-[#D97706] flex-shrink-0" />
-                <div>
-                  <h4 className="text-sm font-bold text-[#92400E]">AI analysis temporarily busy</h4>
-                  <p className="text-xs text-[#B45309] font-medium">
-                    {activeTranscript.error || 'The AI provider is currently rate limiting requests. Your transcript is safe. Please retry analysis in a moment.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleRetry}
-                  disabled={isRetrying}
-                  className="px-3.5 py-2 rounded-lg bg-[#D97706] hover:bg-[#B45309] disabled:bg-[#94A3B8] text-white text-xs font-semibold shadow-saas transition-all cursor-pointer"
-                >
-                  {isRetrying ? 'Re-Queueing...' : 'Retry Analysis'}
-                </button>
-                <button
-                  onClick={() => navigate(`/transcripts/${activeTranscript._id}`)}
-                  className="px-3 py-2 rounded-lg bg-white hover:bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] text-xs font-semibold cursor-pointer"
-                >
-                  View Transcript
-                </button>
-                <button
-                  onClick={() => setActiveTranscript(null)}
-                  className="px-3 py-2 rounded-lg bg-white hover:bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] text-xs font-semibold cursor-pointer"
-                >
-                  Upload Another
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeTranscript.status === 'failed' && (
-            <div className="p-4 rounded-xl bg-[#FEF3F2] border border-[#FECDCA] flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-[#B42318] flex-shrink-0" />
-                <div>
-                  <h4 className="text-sm font-bold text-[#101828]">Analysis Failed</h4>
-                  <p className="text-xs text-[#B42318] font-medium">
-                    {activeTranscript.error || 'Metadata processing failed. Please retry.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleRetry}
-                  disabled={isRetrying}
-                  className="px-3.5 py-2 rounded-lg bg-[#B42318] hover:bg-[#912018] disabled:bg-[#94A3B8] text-white text-xs font-semibold shadow-saas transition-all cursor-pointer"
-                >
-                  {isRetrying ? 'Re-Queueing...' : 'Retry Analysis'}
-                </button>
-                <button
-                  onClick={() => setActiveTranscript(null)}
-                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F9FAFB] border border-[#D0D5DD] text-[#344054] text-xs font-semibold cursor-pointer"
-                >
-                  Upload Another
-                </button>
-              </div>
             </div>
           )}
         </div>
